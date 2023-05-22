@@ -31,7 +31,8 @@ It is designed with concurrent access from multiple clients in mind, and is cont
 
 `max_queue_size: int` ... The size of the queue for sentence generation. When the number of concurrent sentence generation tasks falls below the limit
 
-![img.png](img.png)
+![img](https://github.com/riversun/ChatStream/assets/11747460/f743ba6a-64ec-4f44-80aa-ba9a8d9c7875)
+
 
 # How to use
 
