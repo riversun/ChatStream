@@ -107,7 +107,7 @@ class AbstractChatPrompt(ABC):
             if self.get_replacement_when_input() is not None:
                 final_msg_str = self.replace_string(msg.get_message(), self.get_replacement_when_input())
             else:
-                final_msg_str=msg.get_message()
+                final_msg_str = msg.get_message()
 
             msg.set_message(final_msg_str)
             self.requester_messages.append(final_msg_str)
@@ -118,14 +118,13 @@ class AbstractChatPrompt(ABC):
         else:
             return False
 
-    def get_skip_len(self,omit_last_message=False):
+    def get_skip_len(self, omit_last_message=False):
         """
         （Get the length to skip (already entered as a prompt)
         :return:
         """
-        current_prompt = self.create_prompt(omit_last_message=omit_last_message) # end_point はメッセージ履歴の最後から何番目までを取得するか。Noneの場合はすべて。
-        #print(f"#get_skip_len end_point:{end_point} crr_prompt:{current_prompt}")
-
+        current_prompt = self.create_prompt(
+            omit_last_message=omit_last_message)  # end_point はメッセージ履歴の最後から何番目までを取得するか。Noneの場合はすべて。
         skip_echo_len = len(current_prompt)
         return skip_echo_len
 
@@ -141,6 +140,10 @@ class AbstractChatPrompt(ABC):
         return original_string
 
     def __dict__(self):
+        """
+        シリアライズ
+        データベースやファイルに保存用に。
+        """
         return {
             "system": self.system,
             "chat_contents": [chat_content.__dict__() for chat_content in self.chat_contents],
@@ -153,6 +156,10 @@ class AbstractChatPrompt(ABC):
 
     @classmethod
     def from_dict(cls, data):
+        """
+        デシリアライズ
+        データベース、ファイルからの復元
+        """
         chat_prompt = cls()
         chat_prompt.system = data["system"]
         chat_prompt.chat_contents = [ChatContent.from_dict(chat_content_data) for chat_content_data in
@@ -171,7 +178,7 @@ class AbstractChatPrompt(ABC):
         pass
 
     @abstractmethod
-    def create_prompt(self,omit_last_message=False):
+    def create_prompt(self, omit_last_message=False):
         pass
 
     def get_replacement_when_input(self):
