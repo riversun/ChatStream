@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="chatstream",
-    version="0.1.2",
+    version="0.1.3",
     author="Tom Misawa",
     author_email="riversun.org@gmail.com",
     description="Streaming chat server building blocks for FastAPI/Starlette",
@@ -10,7 +10,7 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/riversun/ChatStream",
     packages=find_packages(exclude=["tests.*", "tests", "examples.*", "examples"]),
-    tests_require=["pytest", "httpx"],
+    tests_require=["pytest", "httpx", "transformers", "torch"],
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
@@ -21,8 +21,6 @@ setup(
     ],
     python_requires=">=3.8",
     install_requires=[
-        "torch",
-        "transformers",
         "fastapi",
         "fastsession",
         "tokflow"
