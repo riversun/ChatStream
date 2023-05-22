@@ -8,6 +8,8 @@
 pip install chatstream
 ```
 
+
+
 ## 特長
 
 ### 1. ストリーミングチャットを簡単構築
@@ -45,7 +47,32 @@ max_queue_size: int ... 文章生成の待ち行列（キュー）のサイズ�
 
 モデル用のプロンプトを生成する chat_prompt クラス(chat_prompt_for_redpajama_incite.py) と、ストリーミングサーバーの役割をもつ server.py を作成する
 
-***chat_prompt_for_redpajama_incite.py**
+
+## サンプルコードに必要なパッケージ
+
+- Pytorch  
+CUDA を使用する場合には、CUDAに対応した pytorch をインストールしてください
+
+```
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu117
+```
+
+- HuggingFace Transformer ライブラリ
+
+```
+pip install transformers
+```
+
+- Web server
+
+uvicorn または gunicorn
+
+```
+pip install "uvicorn[standard]" gunicorn 
+```
+
+
+**chat_prompt_for_redpajama_incite.py**
 
 ```python
 from chatstream.chat_prompt import AbstractChatPrompt

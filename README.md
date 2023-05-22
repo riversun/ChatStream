@@ -8,7 +8,6 @@ A load control utility for large-scale streaming chat servers using pre-trained 
 pip install chatstream
 ```
 
-
 ## What can it do?
 
 ### 1. Simplifies the construction of streaming chats
@@ -17,32 +16,62 @@ You can easily construct streaming chats with large pre-trained language models 
 
 **What is a Streaming Chat**
 
-When generating sentences with a large language model, there are methods that generate the next sentence entirely based on the inputted prompt (and the conversation history so far) before outputting it, and methods that sequentially output the next sentence one token at a time. The latter method is specifically referred to as 'streaming'. In this package, token generation is done one token at a time, and it is streamed as a response to the client. This contributes to a better user experience compared to waiting for the entire sentence to be generated.
+When generating sentences with a large language model, there are methods that generate the next sentence entirely based
+on the inputted prompt (and the conversation history so far) before outputting it, and methods that sequentially output
+the next sentence one token at a time. The latter method is specifically referred to as 'streaming'. In this package,
+token generation is done one token at a time, and it is streamed as a response to the client. This contributes to a
+better user experience compared to waiting for the entire sentence to be generated.
 
 ### 2. Automatically maintains conversation history and context
 
-By default, the HTTP session feature keeps the conversation history between the user and the language model in on-memory on the server-side. The session duration can be set, but it is basically while the browser is open. This makes it possible to have multi-round web chats with continued context.
+By default, the HTTP session feature keeps the conversation history between the user and the language model in on-memory
+on the server-side. The session duration can be set, but it is basically while the browser is open. This makes it
+possible to have multi-round web chats with continued context.
 
 ### 3. Control of concurrent access from multiple users
 
-It is designed with concurrent access from multiple clients in mind, and is controlled according to the following parameters specified in the constructor
+It is designed with concurrent access from multiple clients in mind, and is controlled according to the following
+parameters specified in the constructor
 
-`num_of_concurrent_executions` : int ... The number of concurrent sentence generation tasks to the pre-trained language model  
+`num_of_concurrent_executions` : int ... The number of concurrent sentence generation tasks to the pre-trained language
+model
 
-`max_queue_size: int` ... The size of the queue for sentence generation. When the number of concurrent sentence generation tasks falls below the limit
+`max_queue_size: int` ... The size of the queue for sentence generation. When the number of concurrent sentence
+generation tasks falls below the limit
 
 ![img](https://github.com/riversun/ChatStream/assets/11747460/f743ba6a-64ec-4f44-80aa-ba9a8d9c7875)
-
 
 # How to use
 
 The following is an example of streaming chat using `togethercomputer/RedPajama-INCITE-Chat-3B-v1` as a model
 
-Create a chat_prompt class (chat_prompt_for_redpajama_incite.py) that generates prompts for the model and a server.py that acts as a streaming server.
+Create a chat_prompt class (chat_prompt_for_redpajama_incite.py) that generates prompts for the model and a server.py
+that acts as a streaming server.
+
+## Required Packages for the Demo Code
+
+- Pytorch  
+  If you're using CUDA, please install the CUDA-compatible version of pytorch.
+
+```
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu117
+```
+
+- HuggingFace Transformer Library
+
+```
+pip install transformers
+```
+
+- Web server
+
+uvicorn or gunicorn
+
+```
+pip install "uvicorn[standard]" gunicorn 
+```
 
 **chat_prompt_for_redpajama_incite.py**
-
-
 
 ```python
 from chatstream.chat_prompt import AbstractChatPrompt
