@@ -1,8 +1,8 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="ChatStream",
-    version="0.1.1",
+    name="chatstream",
+    version="0.1.2",
     author="Tom Misawa",
     author_email="riversun.org@gmail.com",
     description="Streaming chat server building blocks for FastAPI/Starlette",
@@ -22,7 +22,7 @@ setup(
     python_requires=">=3.8",
     install_requires=[
         "torch",
-        "transformers"
+        "transformers",
         "fastapi",
         "fastsession",
         "tokflow"
