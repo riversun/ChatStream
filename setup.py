@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="chatstream",
-    version="0.1.3",
+    version="0.1.4",
     author="Tom Misawa",
     author_email="riversun.org@gmail.com",
     description="Streaming chat server building blocks for FastAPI/Starlette",
