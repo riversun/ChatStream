@@ -28,7 +28,7 @@ class ChatStream:
                  # True: When a 'Too many requests' situation occurs, it returns the status as 429
                  use_mock_response=False,
                  # True: Returns fixed phrases for testing. As it doesn't need to load the model, it starts up immediately
-                 mock_type="round",  # "round" / "long" - The type of phrases to return when use_mock_response=True
+                 mock_params={type:"round"},  # "round" / "long" - The type of phrases to return when use_mock_response=True
                  chat_prompt_clazz=None,
                  # Specifies the class that manages the prompts sent to the language model. Inherit from AbstractChatPrompt and implement a class that generates chat prompts according to the etiquette of each model
                  max_new_tokens=256,  # The maximum size of the newly generated tokens
@@ -99,7 +99,7 @@ class ChatStream:
 
         if use_mock_response:
             self.chat_generator = ChatGeneratorMock(model=None, tokenizer=None, device=None,
-                                                    params={"mock_type": mock_type})
+                                                    params=mock_params)
         else:
             self.chat_generator = ChatGenerator(model, tokenizer, device, chat_params)
 

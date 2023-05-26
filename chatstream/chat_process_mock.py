@@ -27,7 +27,11 @@ class ChatGeneratorMock:
 
             self.params["stop_strs"] = stop_strs
 
-            if self.params.get("mock_type") == "round":
+            time_per_token_sec = self.params.get("time_per_token_sec", 0.1)
+            initial_wait_sec = self.params.get("initial_wait_sec", 0)
+
+
+            if self.params.get("type") == "round":
                 line = sample_text_array[(chat_prompt.get_turn() - 1) % len(
                     sample_text_array)]
             else:
@@ -40,6 +44,8 @@ class ChatGeneratorMock:
             for index, updated_text in enumerate(tokens):
                 if index == 0:
                     resp_text += updated_text
+                    if initial_wait_sec>0:
+                        await asyncio.sleep(initial_wait_sec)
                 else:
                     resp_text += " " + updated_text
 
@@ -48,7 +54,7 @@ class ChatGeneratorMock:
                 if index == 0:
                     pos = "begin"
 
-                await asyncio.sleep(0.1)  # わずかな遅延を発生させ、逐次返信となるようにする
+                await asyncio.sleep(time_per_token_sec)  # わずかな遅延を発生させ、逐次返信となるようにする
 
                 # 出力タイプごとに出しわける
                 if otype == "updated_text":
