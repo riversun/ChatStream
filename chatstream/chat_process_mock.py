@@ -34,10 +34,13 @@ class ChatGeneratorMock:
             if self.params.get("type") == "round":
                 line = sample_text_array[(chat_prompt.get_turn() - 1) % len(
                     sample_text_array)]
+            elif self.params.get("type") == "echo":
+                # ユーザーの最新の入力文をエコーする
+                line = chat_prompt.get_requester_last_msg()
             else:
                 line = sample_text_long
 
-            tokens = line.split(' ')
+            tokens,separator =self.split_text(line)
             resp_text = ""
 
             prev = ""
@@ -47,7 +50,7 @@ class ChatGeneratorMock:
                     if initial_wait_sec>0:
                         await asyncio.sleep(initial_wait_sec)
                 else:
-                    resp_text += " " + updated_text
+                    resp_text += separator + updated_text
 
                 updated_text = resp_text[len(prev):]
                 pos = "mid"
@@ -84,4 +87,30 @@ class ChatGeneratorMock:
                 await post_process_callback("success")  # Call the callback function after the generator has finished
 
         except Exception as e:
-            print(f"Client disconnected: {e}")
+            #print(f"Client disconnected: {e}")
+            raise e;
+
+    def count_wide_chars(self,s):
+        # 全角文字の数をカウントする関数。全角文字の範囲である「！」から「～」、または「　」から「＠」までの文字をカウントする。
+        return sum([1 for c in s if ord('！') <= ord(c) <= ord('～') or ord('　') <= ord(c) <= ord('＠')])
+
+    def split_text(self,line):
+        """
+        英文、２バイト系文（日本語など）を判定し、英文の場合は " " スペース区切り、日本語の場合は、１文字ずつトークナイズ
+        """
+        # 全角文字の数をカウントする
+        wide_char_count = self.count_wide_chars(line)
+        # 半角スペースの数をカウントする
+        space_count = line.count(' ')
+
+        # 全角文字が3文字以上含まれていて、かつ、半角スペースの数が全角文字の数より少ない場合
+        if wide_char_count >= 3 and space_count < wide_char_count:
+            # そのテキストを日本語とみなし、1文字ずつに分割する
+            tokens = list(line)
+            return tokens, ""
+        else:
+            # そうでない場合、そのテキストを英語とみなし、半角スペースで分割する
+            tokens = line.split(' ')
+            return tokens, " "
+
+
