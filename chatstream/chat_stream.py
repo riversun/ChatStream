@@ -50,7 +50,8 @@ class ChatStream:
             logger = logging.getLogger('chatstream')
             logger.setLevel(logging.NOTSET)
             handler = logging.StreamHandler()
-            handler.setFormatter(logging.Formatter('%(asctime)s [%(name)s][%(levelname)s] %(module)s#%(funcName)s  %(message)s'))
+            handler.setFormatter(
+                logging.Formatter('%(asctime)s [%(name)s][%(levelname)s] %(module)s#%(funcName)s  %(message)s'))
 
             logger.addHandler(handler)
 
@@ -108,7 +109,7 @@ class ChatStream:
         request_handler.chat_generator = self.chat_generator
         request_handler.chat_prompt_clazz = self.chat_prompt_clazz
 
-    async def handle_starlette_request(self, request: Request, request_body):
+    async def handle_starlette_request(self, request: Request, request_body, callback):
         """
         This method performs sequential text generation based on user input received, using a pre-trained language model.
 
@@ -147,8 +148,10 @@ class ChatStream:
         try:
             # リクエストキュー（処理待ち行列）にリクエストタスク(request, this_request_semaphore, future_result)を追加する
             self.request_queue.put_nowait(
-                (request, request_body, this_request_semaphore, future_result))  # put_nowait=>キューが一杯でない場合にのみ要求を追加
-            self.logger.debug(f"{req_id(request)} このリクエストを'リクエストキュー'に追加 キューサイズ:{self.request_queue.qsize()}/{self.request_queue.maxsize}")
+                (request, request_body, callback, this_request_semaphore,
+                 future_result))  # put_nowait=>キューが一杯でない場合にのみ要求を追加
+            self.logger.debug(
+                f"{req_id(request)} このリクエストを'リクエストキュー'に追加 キューサイズ:{self.request_queue.qsize()}/{self.request_queue.maxsize}")
 
         except asyncio.QueueFull:
 
@@ -206,7 +209,7 @@ class ChatStream:
                 # クライアントからのリクエストが発生したとき
                 # 即座にそのリクエストタスク（request, this_request_semaphore, future_resultのタプル）はリクエストキュー(request_queue)から取りだされ
                 # 次実行キュー(run_on_next_queue) に詰められる
-                request, request_body, this_request_semaphore, future_result = await self.request_queue.get()
+                request, request_body, callback, this_request_semaphore, future_result = await self.request_queue.get()
 
                 self.logger.debug(f"{req_id(request)} 'リクエストキュー'からリクエストタスク取り出し")
 
@@ -223,7 +226,8 @@ class ChatStream:
                 # リクエストが立て込んでいる場合、　基本的に　次実行キュー(run_on_next_queue) のサイズは 1 となる
                 # が、同時処理カウントセマフォ(concurrent_processing_semaphore)が取得され
                 # 次実行キュー(run_on_next_queue)からリクエストタスクが dequeue されてから、ループが1周まわるまでの短時間 0 になる
-                self.run_on_next_queue.put_nowait((request, request_body, this_request_semaphore, future_result))
+                self.run_on_next_queue.put_nowait(
+                    (request, request_body, callback, this_request_semaphore, future_result))
 
                 self.logger.debug(f"{req_id(request)} リクエストタスクを'次処理キュー'に追加")
 
@@ -253,7 +257,8 @@ class ChatStream:
                     self.concurrent_processing_semaphore.release()  # 同時処理管理セマフォをリリースする Release the concurrent processing semaphore
                     await self.processing_queue.get()  # 現在の request を、リクエスト処理中キューから取り出す Get the current request from the request processing queue
                     self.logger.debug(f"{req_id(request)} リクエストタスク処理中： 文章生成終了　終了メッセージ:'{message}'")
-
+                    if callback:
+                        callback(request, message)
                     # 上の2つ（セマフォと、キュー）を解放したので、次に処理されるべきリクエストタスクが処理(モデルによる文章生成)できるようになる。
 
                 # concurrent_processing_semaphore を取得した request のみ、ここに入れる
