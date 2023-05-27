@@ -4,6 +4,8 @@ from abc import ABC, abstractmethod
 from fastapi import Request
 import traceback
 
+from chatstream.util_request_id import req_id
+
 
 class AbstractRequestHandler(ABC):
     """
@@ -29,7 +31,7 @@ class AbstractRequestHandler(ABC):
         self.chat_prompt_clazz = None
         self.logger = None
 
-    async def generate(self, chat_prompt, chat_generation_finished_callback):
+    async def generate(self, chat_prompt, chat_generation_finished_callback,request):
         f"""
         事前学習済言語モデルから逐次生成されたトークンを送出する非同期ジェネレーターを返す
         
@@ -63,8 +65,15 @@ class AbstractRequestHandler(ABC):
 
         except Exception as e:
             #  ストリーム送出開始時に想定していないエラーが発生したとき
-            print(f"予期せぬエラーが発生しました: {e}\n{traceback.format_exc()}")
+
+            self.logger.warning(f"{req_id(request)} 予期せぬエラーが発生しました: {e}\n{traceback.format_exc()}")
+
+            # エラーのコールバックを返す
             await chat_generation_finished_callback("unknown_error_occurred,while chat_generator.generate")
+
+            # エラーを上位に投げる
+            # (このエラーは、generator が yield しはじめた場合、上位にあがらない)
+            raise e
 
     @abstractmethod
     async def process_request(self, request: Request, streaming_finished_callback):
