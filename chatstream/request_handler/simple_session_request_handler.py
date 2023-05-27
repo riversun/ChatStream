@@ -44,17 +44,45 @@ class SimpleSessionRequestHandler(AbstractRequestHandler):
             chat_prompt = session.get("chat_prompt")
 
             if request_body is not None:
-                # request_body が明示的に指定されたいた場合
+                # request_body が明示的に指定された場合
+                # request はストリームで提供されるため、どこかで読み取ると consume されてしまう。
+                # そこで、もしどこかでインターセプトしてリクエストされたデータを使いたい場合は
+                # インターセプト元で request_body をキャッシュし、再度指定して chatstream を呼び出すことで
+                # request が consume されていても処理を先に進めることができる
+                self.logger.debug(
+                    f"{req_id(request)} request_body が指定されているため、そこからリクエストデータを取得します。リクエストが Web API のフロント処理でインターセプトされた可能性があります。")
                 data = json.loads(request_body)
             else:
                 data = await request.json()
 
-            user_input = data["user_input"]
+            user_input = data.get("user_input", None)
 
-            self.logger.debug(f"{req_id(request)} chat_prompt にユーザー入力データを追加 user_input:'{user_input}'")
+            # 安全に bool値を json 由来の data オブジェクトから取得する
+            need_regenerate = False
+            try:
+                need_regenerate = data["regenerate"]
+                if isinstance(need_regenerate, bool):
+                    need_regenerate = bool(need_regenerate)
+                else:
+                    need_regenerate = False
+            except (KeyError, ValueError):
+                need_regenerate = False
 
-            chat_prompt.add_requester_msg(user_input)
-            chat_prompt.add_responder_msg(None)
+            self.logger.debug(
+                f"{req_id(request)} パラメータ取得 user_input:{user_input} regenerate:{need_regenerate}")
+
+            # TODO user_input が None だった場合の対応
+
+            if need_regenerate:
+                self.logger.debug(
+                    f"{req_id(request)} regenerate します。 user_input(regenerate時に使用される request_last_msg):'{chat_prompt.get_requester_last_msg()}'")
+                chat_prompt.remove_last_responder_message()  # responder の 最後のメッセージを削除する
+                pass
+            else:
+                self.logger.debug(f"{req_id(request)} chat_prompt にユーザー入力データを追加 user_input:'{user_input}'")
+
+                chat_prompt.add_requester_msg(user_input)
+                chat_prompt.add_responder_msg(None)
 
             async def chat_generation_finished_callback(message):
                 self.logger.debug(f"{req_id(request)} 文章生成終了コールバックを受信しました message:'{message}'")
