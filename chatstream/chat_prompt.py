@@ -83,6 +83,7 @@ class AbstractChatPrompt(ABC):
 
         # responder_messagesリストの最後のメッセージを更新
         self.responder_messages[-1].message = message
+        self.chat_contents[-1].set_message(message)
 
     def get_responder_last_msg(self):
         """
@@ -97,20 +98,32 @@ class AbstractChatPrompt(ABC):
         """
         return self.requester_messages[-1].message
 
-    def _add_msg(self, msg):
-        self.chat_contents.append(msg)
-        if msg.role == self.responder:
-            self.responder_messages.append(msg)
-        elif msg.role == self.requester:
+    def remove_last_responder_message(self):
+        """
+        Set the message of the last response from the responder (AI) to None.
+        """
+        if self.responder_messages and self.chat_contents[-1].get_role() == self.responder:
+            self.responder_messages[-1].set_message(None)
+            self.chat_contents[-1].set_message(None)
+        else:
+            pass
+
+    def _add_msg(self, chat_content_obj):
+        # チャットメッセージリストに追加
+        self.chat_contents.append(chat_content_obj)
+        if chat_content_obj.role == self.responder:
+            self.responder_messages.append(chat_content_obj)
+        elif chat_content_obj.role == self.requester:
             # If necessary, replace line breaks, etc. in the input string with tokens understood by the tokenizer.
             # ユーザーによる入力を置換指定された条件で置換する
             if self.get_replacement_when_input() is not None:
-                final_msg_str = self.replace_string(msg.get_message(), self.get_replacement_when_input())
+                final_msg_str = self.replace_string(chat_content_obj.get_message(), self.get_replacement_when_input())
             else:
-                final_msg_str = msg.get_message()
+                final_msg_str = chat_content_obj.get_message()
 
-            msg.set_message(final_msg_str)
-            self.requester_messages.append(final_msg_str)
+            chat_content_obj.set_message(final_msg_str)
+            # requester メッセージリストに追加
+            self.requester_messages.append(chat_content_obj)
 
     def is_requester_role(self, role):
         if self.requester == role:
@@ -131,7 +144,9 @@ class AbstractChatPrompt(ABC):
     def replace_string(self, original_string, replace_list):
         """
         original_string を replace_list にある置換ペア（タプル）にしたがって置換する
-        replace_list =[("A","B"),("C","D")] replace A with B and replace C with D
+        replace_list =[("A","B"),("C","D")] の場合、
+        original_string にある "A" は "B" に置換される。 "C" は "D" に置換される。
+        replace A with B and replace C with D
         """
         if replace_list is None:
             return original_string
