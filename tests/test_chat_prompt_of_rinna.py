@@ -108,7 +108,7 @@ class TestChatPromptRinna:
         last_msg_before = chat_prompt.get_responder_last_msg()
 
         # 最後のメッセージを削除
-        chat_prompt.remove_last_responder_message()
+        chat_prompt.clear_last_responder_message()
 
         # 削除後の最後のメッセージを取得
         last_msg_after = chat_prompt.get_responder_last_msg() if chat_prompt.responder_messages else None
@@ -119,23 +119,18 @@ class TestChatPromptRinna:
         assert last_msg_after == (
             chat_prompt.responder_messages[-1].get_message() if chat_prompt.responder_messages else None)
 
-
         # 最後のメッセージを削除しようとする（リクエスターメッセージなので削除されないはず）
-        chat_prompt.remove_last_responder_message()
+        chat_prompt.clear_last_responder_message()
 
         # 最後のリクエスタメッセージを確認
         last_requester_msg = chat_prompt.get_requester_last_msg()
-        assert last_requester_msg =="渋谷の観光地を教えてください。"
-
-
+        assert last_requester_msg == "渋谷の観光地を教えてください。"
 
         # 削除したあとでも もとの responder の最後のメッセージが None なら、 Noneを返す
         assert chat_prompt.get_responder_last_msg() is None
-        assert chat_prompt.create_prompt()=="ユーザー: 日本のおすすめの観光地を教えてください。<NL>システム: どの地域の観光地が知りたいですか？<NL>ユーザー: 渋谷の観光地を教えてください。<NL>システム: "
+        assert chat_prompt.create_prompt() == "ユーザー: 日本のおすすめの観光地を教えてください。<NL>システム: どの地域の観光地が知りたいですか？<NL>ユーザー: 渋谷の観光地を教えてください。<NL>システム: "
 
-
-
-    def test_remove_last_responder_message_when_last_responder_message_is_none(self):
+    def test_clear_last_responder_message_when_last_responder_message_is_none(self):
         chat_prompt = ChatPromptRinnaForTest()
         chat_prompt.add_requester_msg("日本のおすすめの観光地を教えてください。")
         chat_prompt.add_responder_msg("どの地域の観光地が知りたいですか？")
@@ -148,7 +143,7 @@ class TestChatPromptRinna:
         last_responder_msg_before = chat_prompt.get_responder_last_msg()
 
         # 最後のレスポンダメッセージを削除
-        chat_prompt.remove_last_responder_message()
+        chat_prompt.clear_last_responder_message()
 
         # 削除後の最後のレスポンダメッセージ
         last_responder_msg_after = chat_prompt.get_responder_last_msg() if chat_prompt.responder_messages else None
@@ -158,10 +153,77 @@ class TestChatPromptRinna:
 
         # 最後のリクエスタメッセージを確認
         last_requester_msg = chat_prompt.get_requester_last_msg()
-        assert last_requester_msg =="渋谷の観光地を教えてください。"
-
+        assert last_requester_msg == "渋谷の観光地を教えてください。"
 
         # 削除したあとでも もとの responder の最後のメッセージが None なら、 Noneを返す
         assert chat_prompt.get_responder_last_msg() is None
-        assert chat_prompt.create_prompt()=="ユーザー: 日本のおすすめの観光地を教えてください。<NL>システム: どの地域の観光地が知りたいですか？<NL>ユーザー: 渋谷の観光地を教えてください。<NL>システム: "
+        assert chat_prompt.create_prompt() == "ユーザー: 日本のおすすめの観光地を教えてください。<NL>システム: どの地域の観光地が知りたいですか？<NL>ユーザー: 渋谷の観光地を教えてください。<NL>システム: "
 
+    def test_clear_last_responder_message_when_no_messages(self):
+        chat_prompt = ChatPromptRinnaForTest()
+
+        # まだメッセージが追加されていないので、responder_messagesが空であることを確認
+        assert not chat_prompt.responder_messages
+
+        # 最後のレスポンダメッセージを削除を試みる
+        try:
+            chat_prompt.clear_last_responder_message()
+        except IndexError:
+            pytest.fail("remove_last_responder_message threw IndexError when it shouldn't")
+
+        # メッセージがまだないので、レスポンダの最後のメッセージはNoneであることを確認
+        assert chat_prompt.get_responder_last_msg() is None
+
+        # メッセージがまだないので、プロンプトはシステムの初期メッセージであることを確認
+        assert chat_prompt.create_prompt() == chat_prompt.system
+
+    def test_remove_last_requester_message(self):
+        """
+        remove_last_requester_messageメソッドの単体テスト
+        リクエスターのメッセージリストから最後のメッセージが削除されることを確認
+        """
+        chat_prompt = ChatPromptRinnaForTest()
+        chat_prompt.add_requester_msg("メッセージ1")
+        chat_prompt.add_requester_msg("メッセージ2")
+        chat_prompt.remove_last_requester_msg()
+
+        assert len(chat_prompt.requester_messages) == 1
+        assert chat_prompt.requester_messages[-1].get_message() == "メッセージ1"
+
+    def test_remove_last_responder_message(self):
+        """
+        remove_last_responder_messageメソッドの単体テスト
+        レスポンダーのメッセージリストから最後のメッセージが削除されることを確認
+        """
+        chat_prompt = ChatPromptRinnaForTest()
+        chat_prompt.add_responder_msg("メッセージ1")
+        chat_prompt.add_responder_msg("メッセージ2")
+        chat_prompt.remove_last_responder_msg()
+
+        assert len(chat_prompt.responder_messages) == 1
+        assert chat_prompt.responder_messages[-1].get_message() == "メッセージ1"
+
+    def test_is_empty(self):
+        """
+        is_empty メソッドの単体テスト
+        チャットプロンプトが空のときに True、そうでないときに False を返すことを確認する
+        """
+        chat_prompt = ChatPromptRinnaForTest()
+
+        # 何もメッセージが追加されていないので、is_empty は True を返すべき
+        assert chat_prompt.is_empty() is True
+
+        # リクエスターメッセージを追加
+        chat_prompt.add_requester_msg("こんにちは")
+        # メッセージが追加されたので、is_empty は False を返すべき
+        assert chat_prompt.is_empty() is False
+
+        # リクエスターメッセージを削除
+        chat_prompt.remove_last_requester_msg()  # メソッドの実装によりますが、このメソッドが存在しない場合、この行は削除してください
+        # すべてのメッセージが削除されたので、is_empty は再び True を返すべき
+        assert chat_prompt.is_empty() is True
+
+        # レスポンダーメッセージを追加
+        chat_prompt.add_responder_msg("こんにちは")
+        # メッセージが追加されたので、is_empty は False を返すべき
+        assert chat_prompt.is_empty() is False
