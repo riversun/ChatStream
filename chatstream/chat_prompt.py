@@ -76,6 +76,45 @@ class AbstractChatPrompt(ABC):
     def add_responder_msg(self, message):
         self._add_msg(ChatContent(role=self.responder, msg=message))
 
+    def get_responder_last_msg(self):
+        """
+        AI側の最新メッセージを取得する
+        """
+        return self.responder_messages[-1].message if self.responder_messages else None
+
+    def get_requester_last_msg(self):
+        """
+        ユーザーからの最新メッセージを取得する
+        """
+        # ユーザーメッセージがあれば最新のものを、なければNoneを返す
+        return self.requester_messages[-1].message if self.requester_messages else None
+
+    def clear_last_responder_message(self):
+        """
+        Set the message of the last response from the responder (AI) to None.
+        """
+        if self.responder_messages and self.chat_contents and self.chat_contents[-1].get_role() == self.responder:
+            self.responder_messages[-1].set_message(None)
+            self.chat_contents[-1].set_message(None)
+        else:
+            pass
+
+    def remove_last_requester_msg(self):
+        """
+        ユーザー側の最新メッセージを削除
+        """
+        if self.requester_messages and self.chat_contents and self.chat_contents[-1].get_role() == self.requester:
+            self.requester_messages.pop()
+            self.chat_contents.pop()
+
+    def remove_last_responder_msg(self):
+        """
+        AI側の最新メッセージを削除
+        """
+        if self.responder_messages and self.chat_contents and self.chat_contents[-1].get_role() == self.responder:
+            self.responder_messages.pop()
+            self.chat_contents.pop()
+
     def set_responder_last_msg(self, message):
         """
         AI 側の最新メッセージを更新する
@@ -84,29 +123,6 @@ class AbstractChatPrompt(ABC):
         # responder_messagesリストの最後のメッセージを更新
         self.responder_messages[-1].message = message
         self.chat_contents[-1].set_message(message)
-
-    def get_responder_last_msg(self):
-        """
-        AI側の最新メッセージを取得する
-        """
-        return self.responder_messages[-1].message
-
-    def get_requester_last_msg(self):
-        """
-        Retrieve the latest message from the requester
-        :return:
-        """
-        return self.requester_messages[-1].message
-
-    def remove_last_responder_message(self):
-        """
-        Set the message of the last response from the responder (AI) to None.
-        """
-        if self.responder_messages and self.chat_contents[-1].get_role() == self.responder:
-            self.responder_messages[-1].set_message(None)
-            self.chat_contents[-1].set_message(None)
-        else:
-            pass
 
     def _add_msg(self, chat_content_obj):
         # チャットメッセージリストに追加
@@ -140,6 +156,12 @@ class AbstractChatPrompt(ABC):
             omit_last_message=omit_last_message)  # end_point はメッセージ履歴の最後から何番目までを取得するか。Noneの場合はすべて。
         skip_echo_len = len(current_prompt)
         return skip_echo_len
+
+    def is_empty(self):
+        """
+        チャットプロンプトが空かどうかを確認する
+        """
+        return not self.requester_messages and not self.responder_messages
 
     def replace_string(self, original_string, replace_list):
         """
