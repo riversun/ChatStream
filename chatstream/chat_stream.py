@@ -28,7 +28,8 @@ class ChatStream:
                  # True: When a 'Too many requests' situation occurs, it returns the status as 429
                  use_mock_response=False,
                  # True: Returns fixed phrases for testing. As it doesn't need to load the model, it starts up immediately
-                 mock_params={type:"round"},  # "round" / "long" - The type of phrases to return when use_mock_response=True
+                 mock_params={type: "round"},
+                 # "round" / "long" - The type of phrases to return when use_mock_response=True
                  chat_prompt_clazz=None,
                  # Specifies the class that manages the prompts sent to the language model. Inherit from AbstractChatPrompt and implement a class that generates chat prompts according to the etiquette of each model
                  max_new_tokens=256,  # The maximum size of the newly generated tokens
@@ -49,7 +50,7 @@ class ChatStream:
             logger = logging.getLogger('chatstream')
             logger.setLevel(logging.NOTSET)
             handler = logging.StreamHandler()
-            handler.setFormatter(logging.Formatter('%(asctime)s [%(name)s][%(levelname)s] #%(funcName)s  %(message)s'))
+            handler.setFormatter(logging.Formatter('%(asctime)s [%(name)s][%(levelname)s] %(module)s#%(funcName)s  %(message)s'))
 
             logger.addHandler(handler)
 
@@ -107,7 +108,7 @@ class ChatStream:
         request_handler.chat_generator = self.chat_generator
         request_handler.chat_prompt_clazz = self.chat_prompt_clazz
 
-    async def handle_starlette_request(self, request: Request):
+    async def handle_starlette_request(self, request: Request, request_body):
         """
         This method performs sequential text generation based on user input received, using a pre-trained language model.
 
@@ -146,8 +147,8 @@ class ChatStream:
         try:
             # リクエストキュー（処理待ち行列）にリクエストタスク(request, this_request_semaphore, future_result)を追加する
             self.request_queue.put_nowait(
-                (request, this_request_semaphore, future_result))  # put_nowait=>キューが一杯でない場合にのみ要求を追加
-            self.logger.debug(f"{req_id(request)} このリクエストを'リクエストキュー'に追加")
+                (request, request_body, this_request_semaphore, future_result))  # put_nowait=>キューが一杯でない場合にのみ要求を追加
+            self.logger.debug(f"{req_id(request)} このリクエストを'リクエストキュー'に追加 キューサイズ:{self.request_queue.qsize()}/{self.request_queue.maxsize}")
 
         except asyncio.QueueFull:
 
@@ -205,7 +206,7 @@ class ChatStream:
                 # クライアントからのリクエストが発生したとき
                 # 即座にそのリクエストタスク（request, this_request_semaphore, future_resultのタプル）はリクエストキュー(request_queue)から取りだされ
                 # 次実行キュー(run_on_next_queue) に詰められる
-                request, this_request_semaphore, future_result = await self.request_queue.get()
+                request, request_body, this_request_semaphore, future_result = await self.request_queue.get()
 
                 self.logger.debug(f"{req_id(request)} 'リクエストキュー'からリクエストタスク取り出し")
 
@@ -222,7 +223,7 @@ class ChatStream:
                 # リクエストが立て込んでいる場合、　基本的に　次実行キュー(run_on_next_queue) のサイズは 1 となる
                 # が、同時処理カウントセマフォ(concurrent_processing_semaphore)が取得され
                 # 次実行キュー(run_on_next_queue)からリクエストタスクが dequeue されてから、ループが1周まわるまでの短時間 0 になる
-                self.run_on_next_queue.put_nowait((request, this_request_semaphore, future_result))
+                self.run_on_next_queue.put_nowait((request, request_body, this_request_semaphore, future_result))
 
                 self.logger.debug(f"{req_id(request)} リクエストタスクを'次処理キュー'に追加")
 
@@ -235,7 +236,7 @@ class ChatStream:
                 self.logger.debug(f"{req_id(request)} リクエストタスク処理中： 実行権を獲得")
 
                 async def request_processing_finished_callback(request, message):
-
+                    self.logger.debug(f"{req_id(request)} 終了コールバックあり {message}")
                     """
                     文章生成ストリームの終了時に呼び出されるコールバック関数
                     ストリーム終了原因
@@ -262,8 +263,9 @@ class ChatStream:
                     # response を得たあともストリーミングが続いていることを忘れてはいけない
 
                     self.logger.debug(f"{req_id(request)} リクエストタスク処理中： リクエストハンドラにより処理開始")
-                    final_response = await self.request_handler.process_request(request,
-                                                                                streaming_finished_callback=request_processing_finished_callback)
+                    final_response = await self.request_handler.process_request(
+                        request, request_body,
+                        streaming_finished_callback=request_processing_finished_callback)
 
                 except ClientDisconnect as e:
                     # ストリーム送出開始時にクライアントから切断されていたとき
