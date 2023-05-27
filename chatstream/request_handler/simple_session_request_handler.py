@@ -7,6 +7,7 @@ from starlette.responses import JSONResponse
 from .request_handler import AbstractRequestHandler
 
 from ..util_request_id import req_id
+import traceback
 
 
 class SimpleSessionRequestHandler(AbstractRequestHandler):
@@ -57,27 +58,25 @@ class SimpleSessionRequestHandler(AbstractRequestHandler):
 
             user_input = data.get("user_input", None)
 
-            # 安全に bool値を json 由来の data オブジェクトから取得する
-            need_regenerate = False
-            try:
-                need_regenerate = data["regenerate"]
-                if isinstance(need_regenerate, bool):
-                    need_regenerate = bool(need_regenerate)
-                else:
-                    need_regenerate = False
-            except (KeyError, ValueError):
-                need_regenerate = False
+            # 安全に need_regenerate(bool値)を json 由来の data オブジェクトから取得する
+
+            need_regenerate = self.get_bool_from_dict(data, "regenerate")
 
             self.logger.debug(
                 f"{req_id(request)} パラメータ取得 user_input:{user_input} regenerate:{need_regenerate}")
 
-            # TODO user_input が None だった場合の対応
-
             if need_regenerate:
                 self.logger.debug(
                     f"{req_id(request)} regenerate します。 user_input(regenerate時に使用される request_last_msg):'{chat_prompt.get_requester_last_msg()}'")
-                chat_prompt.remove_last_responder_message()  # responder の 最後のメッセージを削除する
-                pass
+
+                if chat_prompt.is_empty():
+                    # まだ会話が何も存在しない場合
+                    return await self.return_internal_server_error_response(request, streaming_finished_callback,
+                                                                            "regenerate requested even though the prompt is empty");
+
+                else:
+                    chat_prompt.clear_last_responder_message()  # responder の 最後のメッセージを削除する
+
             else:
                 self.logger.debug(f"{req_id(request)} chat_prompt にユーザー入力データを追加 user_input:'{user_input}'")
 
@@ -123,8 +122,42 @@ class SimpleSessionRequestHandler(AbstractRequestHandler):
             # ここで、一般的なエラーをキャッチするが 非同期 generator が値をstreamresponse で返し始めた後、generator内で exceptionを
             # raise しても、ここでキャッチできないことに注意。
             self.logger.debug(
-                f"{req_id(request)} リクエストハンドラ実行中に不明なエラーが発生しました。{e}")
+                f"{req_id(request)} リクエストハンドラ実行中に不明なエラーが発生しました。{e}\n{traceback.format_exc()}")
 
-            return JSONResponse(
-                content={"error": "internal_server_error", "detail": "request_handler"}, status_code=500,
-                media_type="application/json")
+            return await self.return_internal_server_error_response(request, streaming_finished_callback,
+                                                                    "simple session request");
+
+    async def return_internal_server_error_response(self, request, callback, detail):
+        """
+        Internal Server Error を JSON のエラーレスポンスとして返すときに使用する
+        各行で return JSONResponse をすることは禁止
+        理由は streaming_finished_callback　コールバックの戻し忘れを防ぐため。
+        streaming_finished_callback　をコールバックしないと、
+        同時アクセスキューイングシステムでアクセスブロックに使用しているセマフォが解放されず
+        次のリクエストを受け付けられない事態となってしまうため。
+        """
+        await callback(request, f"unknown_error_occurred,while processing {detail}")
+        return JSONResponse(
+            content={"error": "internal_server_error", "detail": f"{detail}"}, status_code=500,
+            media_type="application/json")
+
+    def get_bool_from_dict(self, data: dict, key: str) -> bool:
+        """
+        安全に辞書からbool値を取得する
+
+        辞書の指定されたキーからbool値を取得。キーが存在しない場合や、値がboolでない場合はFalseを返す。
+
+        Args:
+            data (dict): bool値を取得したい辞書
+            key (str): 取得したい値のキー
+
+        Returns:
+            bool: 辞書から取得したbool値。指定されたキーの値がboolでない場合はFalse
+        """
+        try:
+            value = data[key]
+            if isinstance(value, bool):
+                return value
+        except (KeyError, TypeError):
+            pass
+        return False
