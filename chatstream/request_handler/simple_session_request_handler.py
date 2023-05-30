@@ -11,6 +11,11 @@ import traceback
 
 
 class SimpleSessionRequestHandler(AbstractRequestHandler):
+    """
+        FastAPI/Starlette の Request を処理し、 chat_prompt(会話履歴を含むプロンプト) をオンメモリのセッションに格納する
+        chat_prompt をセッションに保存する request_handler
+    """
+
     def __init__(self, session_attr_name="session"):
         super().__init__()  # Call the initialization of the base class
         self.session_attr = session_attr_name
@@ -38,7 +43,10 @@ class SimpleSessionRequestHandler(AbstractRequestHandler):
                 # chat_prompt がまだセッションに格納されていない場合
                 self.logger.debug(f"{req_id(request)} chat_prompt がセッションに存在しないので、新規生成します")
 
-                chat_prompt = self.chat_prompt_clazz()
+                chat_prompt = self.chat_prompt_clazz() # ChatPrompt をインスタンス化する
+
+                chat_prompt.build_initial_prompt(chat_prompt) # 初期プロンプトを生成する
+
                 # 会話履歴をセッションに保持する
                 session["chat_prompt"] = chat_prompt
 
@@ -52,62 +60,74 @@ class SimpleSessionRequestHandler(AbstractRequestHandler):
                 # request が consume されていても処理を先に進めることができる
                 self.logger.debug(
                     f"{req_id(request)} request_body が指定されているため、そこからリクエストデータを取得します。リクエストが Web API のフロント処理でインターセプトされた可能性があります。")
+
                 data = json.loads(request_body)
             else:
                 data = await request.json()
 
             user_input = data.get("user_input", None)
 
-            # 安全に need_regenerate(bool値)を json 由来の data オブジェクトから取得する
-
+            # 入力オブジェクトから "regenerate" パラメータを取得する。(True/False)
             need_regenerate = self.get_bool_from_dict(data, "regenerate")
 
             self.logger.debug(
                 f"{req_id(request)} パラメータ取得 user_input:{user_input} regenerate:{need_regenerate}")
 
             if need_regenerate:
+                # AIアシスタント側の再生成モードのとき
                 self.logger.debug(
                     f"{req_id(request)} regenerate します。 user_input(regenerate時に使用される request_last_msg):'{chat_prompt.get_requester_last_msg()}'")
 
                 if chat_prompt.is_empty():
-                    # まだ会話が何も存在しない場合
+                    # - ユーザー・AIアシスタント(responder)間で、まだ会話が何も存在しない場合
+                    # => まだ会話が存在しないときに、 "regenerate" を実行した場合は、
+                    # internal server error とする。
+                    # 基本的にはフロントエンド側で会話が何も存在しないときにサーバーに投げないように設計しておくのが前提
                     return await self.return_internal_server_error_response(request, streaming_finished_callback,
                                                                             "regenerate requested even though the prompt is empty");
 
                 else:
-                    chat_prompt.clear_last_responder_message()  # responder の 最後のメッセージを削除する
+                    # - ユーザー・AIアシスタント(responder)間で、会話ターンが進行している場合
+                    chat_prompt.clear_last_responder_message()  # responder の 最後のメッセージを None にする
 
             else:
+                # 通常の場合(AIアシスタント側の再生成ではない)
                 self.logger.debug(f"{req_id(request)} chat_prompt にユーザー入力データを追加 user_input:'{user_input}'")
 
                 chat_prompt.add_requester_msg(user_input)
                 chat_prompt.add_responder_msg(None)
 
             async def chat_generation_finished_callback(message):
+                """
+                チャットのストリーミング生成の完了コールバックを処理する
+                """
                 self.logger.debug(f"{req_id(request)} 文章生成終了コールバックを受信しました message:'{message}'")
                 # 生成された文章のストリーミングが終了したときに実行される
                 if message == "success":
                     # 生成された文章のストリーミングが正常終了したとき(クライアントからの切断・ネットワーク断が発生していない)
                     # AIによる文章生成が無事終了したと判断できるため、ここでセッション情報を保存する
-                    # TODO 文章生成が終了したタイミングでセッション全体をストアに保存しているので、
-                    session_mgr.save_session()  # セッション全体を保存しているので、詳細な差分だけ保存したいような場合は TODO
+
+                    # セッション内容を保存する
+                    # セッション全体を保存する、というのが Too Much であることがわかったら、 chat_prompt のみ保存,または差分保存を導入する。
+                    session_mgr.save_session()
                     self.logger.debug(f"{req_id(request)} セッション内容を保存しました")
                 elif message == "client_disconnected_1":
                     # クライアントに対して、文章ストリーミングを送出中に
                     # ネットワークエラーまたは、クライアントから明示的に切断された
-                    session_mgr.save_session()  # セッション全体を保存しているので、詳細な差分だけ保存したいような場合は TODO
+                    #
+                    session_mgr.save_session()
                     self.logger.debug(f"{req_id(request)} ネットワークエラーが発生しましたが、セッション内容は途中まで保存しました")
                     pass
                 elif message.startswith("unknown_error_occurred"):
                     # 予期せぬエラー（一般的な Syntax Errorなど)
                     pass
 
-                # message=="client_disconnected_2": はこの上位のキューイングループのみでハンドリングできるので、ここでは処理できない
+                # message=="client_disconnected_2": はこの上位のキューイングループのみでハンドリングできるので、このコールバックには到達しない
+
+                self.logger.debug(f"{req_id(request)} 上位にコールバックします")
 
                 # request 処理が正常終了したことを指定されたコールバック関数に通知
                 # このコールバックは実際は上位の キューイングループ
-
-                self.logger.debug(f"{req_id(request)} 上位にコールバックします")
                 await streaming_finished_callback(request, message)
 
             generator = self.generate(chat_prompt, chat_generation_finished_callback, request)
@@ -119,7 +139,7 @@ class SimpleSessionRequestHandler(AbstractRequestHandler):
             return streaming_response
 
         except Exception as e:
-            # ここで、一般的なエラーをキャッチするが 非同期 generator が値をstreamresponse で返し始めた後、generator内で exceptionを
+            # ここで、一般的なエラーをキャッチするが 非同期 generator が値を streamresponse で返し始めた後、generator内で exceptionを
             # raise しても、ここでキャッチできないことに注意。
             self.logger.debug(
                 f"{req_id(request)} リクエストハンドラ実行中に不明なエラーが発生しました。{e}\n{traceback.format_exc()}")
@@ -143,9 +163,9 @@ class SimpleSessionRequestHandler(AbstractRequestHandler):
 
     def get_bool_from_dict(self, data: dict, key: str) -> bool:
         """
-        安全に辞書からbool値を取得する
+        辞書 dict オブジェクトから、安全に、指定したキーの bool値 を取得する
 
-        辞書の指定されたキーからbool値を取得。キーが存在しない場合や、値がboolでない場合はFalseを返す。
+        キーが存在しない場合や、値が bool型 でない場合は False を返す。
 
         Args:
             data (dict): bool値を取得したい辞書
