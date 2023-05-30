@@ -109,7 +109,7 @@ class ChatStream:
         request_handler.chat_generator = self.chat_generator
         request_handler.chat_prompt_clazz = self.chat_prompt_clazz
 
-    async def handle_starlette_request(self, request: Request, request_body, callback):
+    async def handle_starlette_request(self, request: Request, request_body=None, callback=None):
         """
         This method performs sequential text generation based on user input received, using a pre-trained language model.
 
