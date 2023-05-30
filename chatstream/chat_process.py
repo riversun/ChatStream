@@ -115,8 +115,15 @@ class ChatGenerator:
 
             updated_text = response_text[len(prev):]
 
-            updated_text_to_disp = self.tflow_for_updated_text.put(updated_text)
-            response_text_to_disp = self.tflow_for_response_text.put(response_text)
+            updated_text_to_disp=updated_text
+            response_text_to_disp=response_text
+
+            # tokflow 処理が必要な場合はバッファリングしたものをセットする
+            if self.tflow_for_updated_text is not None:
+                updated_text_to_disp = self.tflow_for_updated_text.put(updated_text)
+
+            if self.tflow_for_response_text is not None:
+                response_text_to_disp = self.tflow_for_response_text.put(response_text)
 
             if otype == "updated_text":
                 yield updated_text_to_disp
@@ -145,9 +152,18 @@ class ChatGenerator:
 
         pos = "end"
 
-        # tokflow 内に未出力のバッファが存在する可能性があるため flush する
-        updated_text_to_disp = self.tflow_for_updated_text.flush()
-        response_text_to_disp = self.tflow_for_response_text.flush()
+
+        if self.tflow_for_updated_text is not None:
+            # tokflow 内に未出力のバッファが存在する可能性があるため flush する
+            updated_text_to_disp = self.tflow_for_updated_text.flush()
+        else:
+            updated_text_to_disp = updated_text
+
+        if self.tflow_for_response_text is not None:
+            # tokflow 内に未出力のバッファが存在する可能性があるため flush する
+            response_text_to_disp = self.tflow_for_response_text.flush()
+        else:
+            response_text_to_disp = response_text
 
         # 最終メッセージを出力タイプごとに出しわける
         if otype == "updated_text":
