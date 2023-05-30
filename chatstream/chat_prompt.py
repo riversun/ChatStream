@@ -37,6 +37,24 @@ class AbstractChatPrompt(ABC):
         self.responder = ""
         self.chat_mode = True
 
+    def get_contents(self, opts={}):
+
+        omit_last_message = opts.get("omit_last_message", False)
+
+        list = []
+        for idx, chat_content in enumerate(self.chat_contents):
+            is_last = (idx == len(self.chat_contents) - 1)
+
+            if omit_last_message and is_last:
+                chat_content_role = chat_content.get_role()
+                # chat_content_message = chat_content.get_message()
+                last_content = ChatContent(role=chat_content_role, msg=None)
+                list.append(last_content)
+            else:
+                list.append(chat_content)
+
+        return list
+
     def get_turn(self):
         return len(self.requester_messages)
 
@@ -152,9 +170,10 @@ class AbstractChatPrompt(ABC):
         （Get the length to skip (already entered as a prompt)
         :return:
         """
-        current_prompt = self.create_prompt(
-            omit_last_message=omit_last_message)  # end_point はメッセージ履歴の最後から何番目までを取得するか。Noneの場合はすべて。
+        current_prompt = self.create_prompt({"omit_last_message":omit_last_message})
+
         skip_echo_len = len(current_prompt)
+
         return skip_echo_len
 
     def is_empty(self):
@@ -215,7 +234,14 @@ class AbstractChatPrompt(ABC):
         pass
 
     @abstractmethod
-    def create_prompt(self, omit_last_message=False):
+    def create_prompt(self, opts):
+        pass
+
+    @abstractmethod
+    def build_initial_prompt(self, chat_prompt_obj):
+        """
+        初期プロンプトを生成する
+        """
         pass
 
     def get_replacement_when_input(self):
