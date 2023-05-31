@@ -1,46 +1,6 @@
 import pytest
 
-from chatstream import AbstractChatPrompt
-
-
-class ChatPromptRedpajamaInciteForTest(AbstractChatPrompt):
-
-    def __init__(self):
-        super().__init__()  # Call the initialization of the base class
-        self.set_requester("<human>")
-        self.set_responder("<bot>")
-
-    def get_stop_strs(self):
-        if not self.chat_mode:
-            return None
-
-        return [
-            '<|endoftext|>',
-            '\n<'
-            # Safety stop valve when the model generates not only AI conversations but also human parts of the conversation.
-        ]
-
-    def create_prompt(self):
-        """
-        Build prompts according to the characteristics of each language model
-        :return:
-        """
-        if self.chat_mode == False:
-            return self.get_requester_last_msg()
-
-        # Chat Mode == True case
-        ret = self.system;
-        for chat_content in self.chat_contents:
-            chat_content_role = chat_content.get_role()
-            chat_content_message = chat_content.get_message()
-            if chat_content_role:
-                if chat_content_message:
-                    merged_message = chat_content_role + ": " + chat_content_message + "\n"
-                else:
-                    merged_message = chat_content_role + ":"
-                ret += merged_message
-
-        return ret
+from chatstream import ChatPromptTogetherRedPajamaINCITEChat as ChatPrompt
 
 
 @pytest.fixture
@@ -55,7 +15,7 @@ def chat_prompt():
 
     :return: An instance of `ChatPromptRedpajamaInciteForTest` set up with specified initial conditions.
     """
-    chat_prompt = ChatPromptRedpajamaInciteForTest()
+    chat_prompt = ChatPrompt()
     chat_prompt.set_requester("<human>")
     chat_prompt.set_responder("<bot>")
     chat_prompt.add_requester_msg("Who is Alan Turing")
@@ -113,6 +73,14 @@ def test_create_prompt(chat_prompt):
     In this test case, we expect it to be '<human>: Who is Alan Turing\n<bot>: He is a nice guy\n'
     """
     assert chat_prompt.create_prompt() == "<human>: Who is Alan Turing\n<bot>: He is a nice guy\n"
+
+
+def test_create_prompt_with_omit_last_message(chat_prompt):
+    """
+    When omit_last_message = True, the last message (with roll part) must be empty
+    """
+    prompt = chat_prompt.create_prompt({"omit_last_message": True})
+    assert prompt == "<human>: Who is Alan Turing\n<bot>:"
 
 
 def test_last_requester_message(chat_prompt):

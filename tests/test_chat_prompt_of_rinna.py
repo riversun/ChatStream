@@ -1,57 +1,59 @@
 import pytest
 
-from chatstream import AbstractChatPrompt
+# from chatstream import AbstractChatPrompt
+
+from chatstream import ChatPromptRinnaJapaneseGPTNeoxInst as ChatPrompt
 
 
-class ChatPromptRinnaForTest(AbstractChatPrompt):
-
-    def __init__(self):
-        super().__init__()  # Call the initialization of the base class
-        self.set_requester("ユーザー")
-        self.set_responder("システム")
-
-    def get_stop_strs(self):
-        if not self.chat_mode:
-            return None
-        return []
-
-    def get_replacement_when_input(self):
-        return [("\n", "<NL>")]
-
-    def get_replacement_when_output(self):
-        return [("<NL>", "\n")]
-
-    def create_prompt(self, omit_last_message=False):
-        if self.chat_mode == False:
-            return self.get_requester_last_msg()
-
-        # Chat Mode == True の場合のプロンプトを構築する
-        ret = self.system;
-        for i, chat_content in enumerate(self.chat_contents):
-            chat_content_role = chat_content.get_role()
-            chat_content_message = chat_content.get_message()
-
-            if omit_last_message and (i == len(self.chat_contents) - 1):
-                # omit_last_messageが有効で、今が最後のメッセージの場合
-                chat_content_message = None  # 最後のメッセージパートは無効にする
-
-            if chat_content_role:
-
-                if chat_content_message:
-                    merged_message = chat_content_role + ": " + chat_content_message + "<NL>"
-                else:
-                    merged_message = chat_content_role + ": "
-
-                ret += merged_message
-
-        return ret
-
+# class ChatPromptRinnaForTest(AbstractChatPrompt):
+#
+#     def __init__(self):
+#         super().__init__()  # Call the initialization of the base class
+#         self.set_requester("ユーザー")
+#         self.set_responder("システム")
+#
+#     def get_stop_strs(self):
+#         if not self.chat_mode:
+#             return None
+#         return []
+#
+#     def get_replacement_when_input(self):
+#         return [("\n", "<NL>")]
+#
+#     def get_replacement_when_output(self):
+#         return [("<NL>", "\n")]
+#
+#     def create_prompt(self, omit_last_message=False):
+#         if self.chat_mode == False:
+#             return self.get_requester_last_msg()
+#
+#         # Chat Mode == True の場合のプロンプトを構築する
+#         ret = self.system;
+#         for i, chat_content in enumerate(self.chat_contents):
+#             chat_content_role = chat_content.get_role()
+#             chat_content_message = chat_content.get_message()
+#
+#             if omit_last_message and (i == len(self.chat_contents) - 1):
+#                 # omit_last_messageが有効で、今が最後のメッセージの場合
+#                 chat_content_message = None  # 最後のメッセージパートは無効にする
+#
+#             if chat_content_role:
+#
+#                 if chat_content_message:
+#                     merged_message = chat_content_role + ": " + chat_content_message + "<NL>"
+#                 else:
+#                     merged_message = chat_content_role + ": "
+#
+#                 ret += merged_message
+#
+#         return ret
+#
 
 class TestChatPromptRinna:
 
     @pytest.fixture
     def chat_prompt(self):
-        chat_prompt = ChatPromptRinnaForTest()
+        chat_prompt = ChatPrompt()
         chat_prompt.add_requester_msg("日本のおすすめの観光地を教えてください。")
         chat_prompt.add_responder_msg("どの地域の観光地が知りたいですか？")
         chat_prompt.add_requester_msg("渋谷の観光地を教えてください。")
@@ -86,7 +88,7 @@ class TestChatPromptRinna:
         assert chat_prompt.get_responder_last_msg() == None
 
     def test_last_msg(self):
-        chat_prompt = ChatPromptRinnaForTest()
+        chat_prompt = ChatPrompt()
         chat_prompt.add_requester_msg("日本のおすすめの観光地を教えてください。")
         chat_prompt.add_responder_msg("どの地域の観光地が知りたいですか？")
         chat_prompt.add_requester_msg("渋谷の観光地を教えてください。")
@@ -98,7 +100,7 @@ class TestChatPromptRinna:
         assert chat_prompt.create_prompt() == "ユーザー: 日本のおすすめの観光地を教えてください。<NL>システム: どの地域の観光地が知りたいですか？<NL>ユーザー: 渋谷の観光地を教えてください。<NL>システム: 渋谷の観光地は以下が有名です<NL>ハチ公前<NL>109<NL>道玄坂<NL>"
 
     def test_remove_last_responder_message(self):
-        chat_prompt = ChatPromptRinnaForTest()
+        chat_prompt = ChatPrompt()
         chat_prompt.add_requester_msg("日本のおすすめの観光地を教えてください。")
         chat_prompt.add_responder_msg("どの地域の観光地が知りたいですか？")
         chat_prompt.add_requester_msg("渋谷の観光地を教えてください。")
@@ -131,7 +133,7 @@ class TestChatPromptRinna:
         assert chat_prompt.create_prompt() == "ユーザー: 日本のおすすめの観光地を教えてください。<NL>システム: どの地域の観光地が知りたいですか？<NL>ユーザー: 渋谷の観光地を教えてください。<NL>システム: "
 
     def test_clear_last_responder_message_when_last_responder_message_is_none(self):
-        chat_prompt = ChatPromptRinnaForTest()
+        chat_prompt = ChatPrompt()
         chat_prompt.add_requester_msg("日本のおすすめの観光地を教えてください。")
         chat_prompt.add_responder_msg("どの地域の観光地が知りたいですか？")
         chat_prompt.add_requester_msg("渋谷の観光地を教えてください。")
@@ -160,7 +162,7 @@ class TestChatPromptRinna:
         assert chat_prompt.create_prompt() == "ユーザー: 日本のおすすめの観光地を教えてください。<NL>システム: どの地域の観光地が知りたいですか？<NL>ユーザー: 渋谷の観光地を教えてください。<NL>システム: "
 
     def test_clear_last_responder_message_when_no_messages(self):
-        chat_prompt = ChatPromptRinnaForTest()
+        chat_prompt = ChatPrompt()
 
         # まだメッセージが追加されていないので、responder_messagesが空であることを確認
         assert not chat_prompt.responder_messages
@@ -182,7 +184,7 @@ class TestChatPromptRinna:
         remove_last_requester_messageメソッドの単体テスト
         リクエスターのメッセージリストから最後のメッセージが削除されることを確認
         """
-        chat_prompt = ChatPromptRinnaForTest()
+        chat_prompt = ChatPrompt()
         chat_prompt.add_requester_msg("メッセージ1")
         chat_prompt.add_requester_msg("メッセージ2")
         chat_prompt.remove_last_requester_msg()
@@ -195,7 +197,7 @@ class TestChatPromptRinna:
         remove_last_responder_messageメソッドの単体テスト
         レスポンダーのメッセージリストから最後のメッセージが削除されることを確認
         """
-        chat_prompt = ChatPromptRinnaForTest()
+        chat_prompt = ChatPrompt()
         chat_prompt.add_responder_msg("メッセージ1")
         chat_prompt.add_responder_msg("メッセージ2")
         chat_prompt.remove_last_responder_msg()
@@ -208,7 +210,7 @@ class TestChatPromptRinna:
         is_empty メソッドの単体テスト
         チャットプロンプトが空のときに True、そうでないときに False を返すことを確認する
         """
-        chat_prompt = ChatPromptRinnaForTest()
+        chat_prompt = ChatPrompt()
 
         # 何もメッセージが追加されていないので、is_empty は True を返すべき
         assert chat_prompt.is_empty() is True
@@ -227,3 +229,19 @@ class TestChatPromptRinna:
         chat_prompt.add_responder_msg("こんにちは")
         # メッセージが追加されたので、is_empty は False を返すべき
         assert chat_prompt.is_empty() is False
+
+    def test_create_prompt_with_omit_last_message(self):
+        """
+        omit_last_message = True のとき、最後のメッセージ（ロール部分はあり）が空になること
+        """
+        chat_prompt = ChatPrompt()
+        chat_prompt.add_requester_msg("日本のおすすめの観光地を教えてください。")
+        chat_prompt.add_responder_msg("どの地域の観光地が知りたいですか？")
+        chat_prompt.add_requester_msg("渋谷の観光地を教えてください。")
+        chat_prompt.add_responder_msg("ハチ公前がおすすめです。")
+        prompt = chat_prompt.create_prompt()
+        assert prompt == "ユーザー: 日本のおすすめの観光地を教えてください。<NL>システム: どの地域の観光地が知りたいですか？<NL>ユーザー: 渋谷の観光地を教えてください。<NL>システム: ハチ公前がおすすめです。<NL>"
+        # print(f"prompt:{prompt}")
+        prompt = chat_prompt.create_prompt({"omit_last_message": True})
+        assert prompt == "ユーザー: 日本のおすすめの観光地を教えてください。<NL>システム: どの地域の観光地が知りたいですか？<NL>ユーザー: 渋谷の観光地を教えてください。<NL>システム: "
+        # print(f"prompt:{prompt}")
