@@ -245,8 +245,8 @@ class ChatStream:
                     文章生成ストリームの終了時に呼び出されるコールバック関数
                     ストリーム終了原因
                     ・message=="success" ストリームがクライアントに向け正常に送出された
-                    ・message=="client_disconnected_1" ストリーム送出中にクライアントから切断された
-                    ・message=="client_disconnected_2" ストリーム送出前にクライアントから切断されていた
+                    ・message=="client_disconnected_while_streaming" ストリーム送出中にクライアントから切断された
+                    ・message=="client_disconnected_before_streaming" ストリーム送出前にクライアントから切断されていた
                     ・message=="unknown_error_occurred" ストリーム送出中に予期せぬエラーが発生した
                     :param message:
                     :return:
@@ -275,7 +275,7 @@ class ChatStream:
                 except ClientDisconnect as e:
                     # ストリーム送出開始時にクライアントから切断されていたとき
 
-                    await request_processing_finished_callback(request, "client_disconnected_2")
+                    await request_processing_finished_callback(request, "client_disconnected_before_streaming")
                 except Exception as e:
                     #  ストリーム送出開始時に想定していないエラーが発生したとき
 
