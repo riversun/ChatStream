@@ -1,6 +1,11 @@
 # ChatStream
 
-事前学習済言語モデルを用いた大規模なストリーミングチャットサーバー用負荷コントロールユーティリティ
+[English](https://github.com/riversun/ChatStream/blob/main/README.md) | [&#26085;&#26412;&#35486;](https://github.com/riversun/ChatStream/blob/main/README_ja.md)
+
+**ChatStream** は **事前学習済大規模言語モデル** 向けのチャットツールキットです
+
+FastAPI/Starlette ベースの Web アプリケーション/ Web API に組み込むことで、負荷コントロールを行いながら事前学習済言語モデルによる逐次文章生成を行うことができます。
+
 
 ## インストール
 
@@ -8,161 +13,39 @@
 pip install chatstream
 ```
 
+## クイックスタート
 
-
-## 特長
-
-### 1. ストリーミングチャットを簡単構築
-
-HuggingFace ベースの事前学習済の大規模言語モデルのストリーミングチャットを簡単に構築できる
-
-**ストリーミングチャットとは**
-
-大規模言語モデルで文章生成するとき、入力されたプロンプト（とこれまでの会話履歴）をもとに
-次の文章をすべて生成してから出力する方式と、次の文章を１トークンずつ逐次出力する方式があるが。
-後者の方式をとくに「ストリーミング」と呼ぶ。
-本パッケージでは、トークン生成は1トークンごとに行われ、それをクライアントに対してストリーミングレスポンス（逐次送信）する。
-これによりすべての文章が生成されるまで待たされるのにくらべ、ベターなユーザーエクスペリエンスの実現に寄与する
-
-### 2. 会話履歴の保持
-
-(デフォルトでは)HTTPセッション機能により、ユーザーと言語モデルとの会話履歴はサーバーサイドにオンメモリで持つ
-セッションの持続時間は設定できるが、基本はブラウザが開いている間。
-これにより、コンテクストが継続したマルチラウンドのWebチャットが可能となっている。
-        
-### 3. 複数同時アクセス時の安定したチャットスチーム生成
-
-複数クライアントからの同時アクセスを前提に設計されており、コンストラクタで指定された以下パラメータに従い制御される
-
-```        
-num_of_concurrent_executions: int ... 事前学習済言語モデルへの文章生成タスクの同時実行数
-max_queue_size: int ... 文章生成の待ち行列（キュー）のサイズ。文章生成タスクの同時実行数がリミットを下回ったら
-```
-
-![img](https://github.com/riversun/ChatStream/assets/11747460/f743ba6a-64ec-4f44-80aa-ba9a8d9c7875)
-
-
-
-# 使い方
-
-モデル用のプロンプトを生成する chat_prompt クラス(chat_prompt_for_redpajama_incite.py) と、ストリーミングサーバーの役割をもつ server.py を作成する
-
-
-## サンプルコードに必要なパッケージ
-
-- Pytorch  
-CUDA を使用する場合には、CUDAに対応した pytorch をインストールしてください
+### 必要パッケージのインストール
 
 ```
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu117
-```
-
-- HuggingFace Transformer ライブラリ
-
-```
 pip install transformers
-```
-
-- Web server
-
-uvicorn または gunicorn
-
-```
 pip install "uvicorn[standard]" gunicorn 
 ```
 
 
-**chat_prompt_for_redpajama_incite.py**
+### ChatStream サーバーの実装
+
+事前学習済モデルのストリーミングチャットサーバーを実装します
 
 ```python
-from chatstream.chat_prompt import AbstractChatPrompt
-
-
-class ChatPromptRedpajamaIncite(AbstractChatPrompt):
-
-    def __init__(self):
-        super().__init__()  # Call the initialization of the base class
-        self.set_requester("<human>")
-        self.set_responder("<bot>")
-
-    def get_stop_strs(self):
-        """
-        returns special stop strings for model to finsh generating sentence
-        :return:
-        """
-        if not self.chat_mode:
-            return None
-        return [
-            '<|endoftext|>',
-            '\n<'
-            # Safety stop valve when the model generates not only AI conversations but also human parts of the conversation.
-        ]
-
-    def create_prompt(self):
-        """
-        Build prompts according to the characteristics of each language model
-        :return:
-        """
-        if self.chat_mode == False:
-            return self.get_requester_last_msg()
-
-        ret = self.system;
-        for chat_content in self.chat_contents:
-            chat_content_role = chat_content.get_role()
-            chat_content_message = chat_content.get_message()
-            if chat_content_role:
-                if chat_content_message:
-                    merged_message = chat_content_role + ": " + chat_content_message + "\n"
-                else:
-                    merged_message = chat_content_role + ":"
-                ret += merged_message
-
-        return ret
-
-
-# portable UT
-if False:
-    chatPrompt = ChatPrompt()
-
-    chatPrompt.set_requester("<human>")
-    chatPrompt.set_responder("<bot>")
-    chatPrompt.add_requester_msg("Who is Alan Turing")
-    chatPrompt.add_responder_msg(None)
-
-    assert """<human>: Who is Alan Turing
-<bot>:""" == chatPrompt.create_prompt()
-
-```
-
-**server.py**
-
-```python
-import os
 import torch
+from fastapi import FastAPI, Request
+from fastsession import FastSessionMiddleware, MemoryStore
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
-import uvicorn
-from fastapi import FastAPI, Request
-from fastapi.staticfiles import StaticFiles
-from fastsession import FastSessionMiddleware, MemoryStore
-
-from chat_prompt_for_redpajama_incite import ChatPromptRedpajamaIncite as ChatPrompt
-from chatstream import ChatStream
-
-MAX_CONCURRENT_CONNECTIONS = 2
-MAX_QUEUE_SIZE = 5
+from chatstream import ChatStream,ChatPromptTogetherRedPajamaINCITEChat as ChatPrompt
 
 model_path = "togethercomputer/RedPajama-INCITE-Chat-3B-v1"
-
 device = "cuda"  # "cuda" / "cpu"
-tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False)
+
+tokenizer = AutoTokenizer.from_pretrained(model_path)
 model = AutoModelForCausalLM.from_pretrained(model_path, torch_dtype=torch.float16)
-if device == "cuda":
-    model.to(device)
+model.to(device)
 
 chat_stream = ChatStream(
-    num_of_concurrent_executions=MAX_CONCURRENT_CONNECTIONS,
-    max_queue_size=MAX_QUEUE_SIZE,
+    num_of_concurrent_executions=2,# 文章生成の最大同時実行数
+    max_queue_size=5,# 待ち行列の大きさ
     model=model,
     tokenizer=tokenizer,
     device=device,
@@ -171,48 +54,92 @@ chat_stream = ChatStream(
 
 app = FastAPI()
 
-# Add session middleware to keep context
+# ユーザーごとの ChatPrompt を HTTP セッションに保持するため、セッションミドルウェアを指定
 app.add_middleware(FastSessionMiddleware,
-                   secret_key="your-session-secret-key",  # Key for cookie signature
-                   store=MemoryStore(),  # Store for session saving
-                   http_only=True,  # True: Cookie cannot be accessed from client-side scripts such as JavaScript
-                   secure=False,  # False: For local development env. True: For production. Requires Https
+                   secret_key="your-session-secret-key",
+                   store=MemoryStore(),
+                   http_only=True,
+                   secure=False,
                    )
 
 
 @app.post("/chat_stream")
 async def stream_api(request: Request):
+    # FastAPI の Request オブジェクトを `handle_starlette_request` に渡すだけで自動的にキューイング、同時実行制御します
     response = await chat_stream.handle_starlette_request(request)
     return response
 
 
-@app.get("/stats")
-async def stats_api():
-    return chat_stream.get_stats()
-
-
-# for absolute URL of html contained dir
-def get_html_dir():
-    return os.path.join(os.path.dirname(os.path.realpath(__file__)), 'html')
-
-
-app.mount("/", StaticFiles(directory=get_html_dir(), html=True), name="html")
-
-
 @app.on_event("startup")
 async def startup():
+    # Webサーバー起動と同時に `start_queue_worker` を行い、キューイングシステムを開始します
     await chat_stream.start_queue_worker()
 
+```
 
-def start_server():
-    uvicorn.run(app, host='localhost', port=18080)
+## 目次
+
+- [プロンプトクラス ChatPrompt のインポート](doc%2Fja%2Fchat-prompt.md)
+- [モデルクラスの読み込み](doc%2Fja%2Fload-hf-model.md)
+- [HTTP セッションミドルウェアの設定](doc%2Fja%2Fmiddleware-session.md)
+- [ChatStream の生成と初期化](doc%2Fja%2Fchatstream-initialize.md)
+- Web API エンドポイントの実装
+  - [エンドポイントの実装](doc%2Fja%2Fhandle-request.md)
+  - [ストリーミング送信完了のコールバックを受け取る](doc%2Fja%2Fhandle-request-finish-callback.md)
+  - [ユーザーからのリクエストの読み取り](doc%2Fja%2Fhandle-request-intercept.md)
+  - [HTTP セッションの設定方法](doc%2Fja%2Fhandle-request-session.md)
+- キューイングシステムと同時処理制限
+  - [-キューイングシステムとは](doc%2Fja%2Fqueue-system.md)
+  - [キューイングシステムの開始](doc%2Fja%2Fqueue-system-start.md)
+- Web サーバー(ASGI server) の起動
+  - [uvicorn (内部起動)](doc%2Fja%2Fweb-server-uvicorn-internally.md)
+  - [- uvicorn (外部起動)](doc%2Fja%2Fweb-server-uvicorn-externally.md)
+  - [- gunicorn](doc%2Fja%2Fweb-server-gunicorn.md)
+
+- 開発時の設定
+  - [CORS ミドルウェアの設定](doc%2Fja%2Fmiddleware-cors.md)
+  - [モックレスポンスの利用（高速起動）](doc%2Fja%2Fmock_response.md)
+  - [ロギングの設定](doc%2Fja%2Flogging.md)
+
+- 高度な設定
+  - チャット履歴の永続化
+    - [- カスタムリクエストハンドラの実装](doc%2Fja%2Frequest-handler-how-to.md)
+  - 大規模アクセスを想定した対応方針
+    - [- GPU 分散化　→　マルチ GPU への対応](doc%2Fja%2Fmulti-gpu.md)
+    - [- サーバー分散化 →　マルチサーバー への対応](doc%2Fja%2Fmulti-server.md)
 
 
-def main():
-    start_server()
+# License
 
-
-if __name__ == "__main__":
-    main()
+All code in this repository was developed by Tom Misawa except where otherwise noted.  Copyright (c) 2023, Tom Misawa.  All rights reserved. The code is licensed under the Apache 2.0 license.
 
 ```
+Copyright 2023 Tom Misawa(riversun.org@gmail.com)
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+```
+
+# Citing ChatStream
+
+```bibtex
+@software{chatstream,
+  title = {{ChatStream: A streaming chat toolkit for pre-trained large language models(LLM)}},
+  author = {Tom Misawa(riversun.org@gmail.com) },
+  url = {https://github.com/riversun/ChatStream}
+  month = {5},
+  year = {2023},
+  version = {0.15},
+}
+```
+
+
