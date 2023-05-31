@@ -111,7 +111,7 @@ class SimpleSessionRequestHandler(AbstractRequestHandler):
                     # セッション全体を保存する、というのが Too Much であることがわかったら、 chat_prompt のみ保存,または差分保存を導入する。
                     session_mgr.save_session()
                     self.logger.debug(f"{req_id(request)} セッション内容を保存しました")
-                elif message == "client_disconnected_1":
+                elif message == "client_disconnected_while_streaming":
                     # クライアントに対して、文章ストリーミングを送出中に
                     # ネットワークエラーまたは、クライアントから明示的に切断された
                     #
@@ -122,7 +122,7 @@ class SimpleSessionRequestHandler(AbstractRequestHandler):
                     # 予期せぬエラー（一般的な Syntax Errorなど)
                     pass
 
-                # message=="client_disconnected_2": はこの上位のキューイングループのみでハンドリングできるので、このコールバックには到達しない
+                # message=="client_disconnected_before_streaming": はこの上位のキューイングループのみでハンドリングできるので、このコールバックには到達しない
 
                 self.logger.debug(f"{req_id(request)} 上位にコールバックします")
 

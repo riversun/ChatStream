@@ -37,7 +37,7 @@ class AbstractRequestHandler(ABC):
         
         非同期ジェネレーターにより逐次トークンが生成され最終的に
         クライアントへのレスポンスストリームに送出されるが、
-        その送出中にクライアント側からの切断が検出された場合、コールバック関数に "client_disconnected_1"
+        その送出中にクライアント側からの切断が検出された場合、コールバック関数に "client_disconnected_while_streaming"
         をコールバックする
         
         :param chat_prompt: 
@@ -46,7 +46,7 @@ class AbstractRequestHandler(ABC):
         文章生成状況に応じて、コールバックされるパラメータは以下の通りとなる
         
         "success" ... 文章生成が無事終了
-        "client_disconnected_1" ... レスポンス送出中にクライアントからの切断またはネットワーク切断が発生した
+        "client_disconnected_while_streaming" ... レスポンス送出中にクライアントからの切断またはネットワーク切断が発生した
         "unknown_error" ... 文章生成中に予期せぬエラーが発生した場合
         :return:                                 
         """
@@ -61,7 +61,7 @@ class AbstractRequestHandler(ABC):
         except asyncio.CancelledError:
             # レスポンス送出中にクライアントからの切断が発生した場合
             # request 処理が異常終了(送出中にクライアントからの切断、ネットワーク断)したことを指定されたコールバック関数に通知
-            await chat_generation_finished_callback("client_disconnected_1")
+            await chat_generation_finished_callback("client_disconnected_while_streaming")
 
         except Exception as e:
             #  ストリーム送出開始時に想定していないエラーが発生したとき
