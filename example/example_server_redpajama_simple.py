@@ -1,50 +1,47 @@
+import torch
 import uvicorn
 from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
 from fastsession import FastSessionMiddleware, MemoryStore
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
-from chat_prompt_for_redpajama_incite import ChatPromptRedpajamaIncite as ChatPrompt
-from chatstream import ChatStream
+from chatstream import ChatStream, ChatPromptTogetherRedPajamaINCITEChat as ChatPrompt
 
-"""
-An example of using mock responses instead of actual pre-trained models for verification. 
-Since pre-trained models take time to load, they should be used for client development, etc.
-"""
+model_path = "togethercomputer/RedPajama-INCITE-Chat-3B-v1"
+device = "cuda"  # "cuda" / "cpu"
+
+tokenizer = AutoTokenizer.from_pretrained(model_path)
+model = AutoModelForCausalLM.from_pretrained(model_path, torch_dtype=torch.float16)
+model.to(device)
 
 chat_stream = ChatStream(
-    use_mock_response=True,  # use dummy response for testing
-    mock_params={"type": "round", "initial_wait_sec": 5, "time_per_token_sec": 1},
+    num_of_concurrent_executions=2,
+    max_queue_size=5,
+    model=model,
+    tokenizer=tokenizer,
+    device=device,
     chat_prompt_clazz=ChatPrompt,
 )
 
 app = FastAPI()
 
-#
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-# Add session middleware to keep context
 app.add_middleware(FastSessionMiddleware,
                    secret_key="your-session-secret-key",  # Key for cookie signature
                    store=MemoryStore(),  # Store for session saving
                    http_only=True,  # True: Cookie cannot be accessed from client-side scripts such as JavaScript
-                   secure=False,  # False: For local development env. True: For production. Requires Https
+                   secure=True,  # False: For local development env. True: For production. Requires Https
                    )
 
 
 @app.post("/chat_stream")
 async def stream_api(request: Request):
+    # handling FastAPI/Starlette's Request
     response = await chat_stream.handle_starlette_request(request)
     return response
 
 
 @app.on_event("startup")
 async def startup():
+    # start request queueing system
     await chat_stream.start_queue_worker()
 
 
