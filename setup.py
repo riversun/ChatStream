@@ -2,14 +2,14 @@ from setuptools import setup, find_packages
 
 setup(
     name="chatstream",
-    version="0.1.4",
+    version="0.1.5",
     author="Tom Misawa",
     author_email="riversun.org@gmail.com",
-    description="Streaming chat server building blocks for FastAPI/Starlette",
+    description="A streaming chat toolkit for pre-trained large language models(LLM)",
     long_description=open("README.md", "r").read(),
     long_description_content_type="text/markdown",
     url="https://github.com/riversun/ChatStream",
-    packages=find_packages(exclude=["tests.*", "tests", "examples.*", "examples"]),
+    packages=find_packages(exclude=["tests.*", "tests", "examples.*", "examples","doc","doc.*"]),
     tests_require=["pytest", "httpx", "transformers", "torch"],
     classifiers=[
         "Development Status :: 3 - Alpha",
