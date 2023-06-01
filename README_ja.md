@@ -79,34 +79,48 @@ async def startup():
 
 ## 目次
 
-- [プロンプトクラス ChatPrompt のインポート](doc%2Fja%2Fchat-prompt.md)
-- [モデルクラスの読み込み](doc%2Fja%2Fload-hf-model.md)
-- [HTTP セッションミドルウェアの設定](doc%2Fja%2Fmiddleware-session.md)
-- [ChatStream の生成と初期化](doc%2Fja%2Fchatstream-initialize.md)
+- [プロンプトクラス ChatPrompt のインポート](doc/ja/chat-prompt.md)
+- [モデルクラスの読み込み](doc/ja/load-hf-model.md)
+- [HTTP セッションミドルウェアの設定](doc/ja/middleware-session.md)
+- [ChatStream の生成と初期化](doc/ja/chatstream-initialize.md)
+
+
+
 - Web API エンドポイントの実装
-  - [エンドポイントの実装](doc%2Fja%2Fhandle-request.md)
-  - [ストリーミング送信完了のコールバックを受け取る](doc%2Fja%2Fhandle-request-finish-callback.md)
-  - [ユーザーからのリクエストの読み取り](doc%2Fja%2Fhandle-request-intercept.md)
-  - [HTTP セッションの設定方法](doc%2Fja%2Fhandle-request-session.md)
+  - [エンドポイントの実装](doc/ja/handle-request.md)
+  - [ストリーミング送信完了のコールバックを受け取る](doc/ja/handle-request-finish-callback.md)
+  - [ユーザーからのリクエストの読み取り](doc/ja/handle-request-intercept.md)
+  - [HTTP セッションの設定方法](doc/ja/handle-request-session.md)
+
+
 - キューイングシステムと同時処理制限
-  - [-キューイングシステムとは](doc%2Fja%2Fqueue-system.md)
-  - [キューイングシステムの開始](doc%2Fja%2Fqueue-system-start.md)
+  - [キューイングシステムとは](doc/ja/queue-system.md)
+  - [キューイングシステムの開始](doc/ja/queue-system-start.md)
+
+
 - Web サーバー(ASGI server) の起動
-  - [uvicorn (内部起動)](doc%2Fja%2Fweb-server-uvicorn-internally.md)
-  - [- uvicorn (外部起動)](doc%2Fja%2Fweb-server-uvicorn-externally.md)
-  - [- gunicorn](doc%2Fja%2Fweb-server-gunicorn.md)
+  - [uvicorn (内部から起動)](doc/ja/web-server-uvicorn-internally.md)
+  - [uvicorn (外部から起動)](doc/ja/web-server-uvicorn-externally.md)
+  - [gunicorn](doc/ja/web-server-gunicorn.md)
+
+
+- コンソールチャットの実装
+  - モデルの動作確認用に簡易的なコンソールチャットを実行する
+
 
 - 開発時の設定
-  - [CORS ミドルウェアの設定](doc%2Fja%2Fmiddleware-cors.md)
-  - [モックレスポンスの利用（高速起動）](doc%2Fja%2Fmock_response.md)
-  - [ロギングの設定](doc%2Fja%2Flogging.md)
+  - [CORS ミドルウェアの設定](doc/ja/middleware-cors.md)
+  - [モックレスポンスの利用（高速起動）](doc/ja/mock_response.md)
+  - [ロギングの設定](doc/ja/logging.md)
+
 
 - 高度な設定
   - チャット履歴の永続化
-    - [- カスタムリクエストハンドラの実装](doc%2Fja%2Frequest-handler-how-to.md)
-  - 大規模アクセスを想定した対応方針
-    - [- GPU 分散化　→　マルチ GPU への対応](doc%2Fja%2Fmulti-gpu.md)
-    - [- サーバー分散化 →　マルチサーバー への対応](doc%2Fja%2Fmulti-server.md)
+    - [- カスタムリクエストハンドラの実装](doc/ja/request-handler-how-to.md)
+  - 大規模アクセスを想定した構成
+    - OAuth を使用したログイン認証との連携
+    - [- マルチ GPU での負荷分散](doc/ja/multi-gpu.md)
+    - [- マルチGPUサーバーでの負荷分散](doc/ja/multi-server.md)
 
 
 # License

@@ -42,7 +42,7 @@ model
 `max_queue_size: int` ... The size of the queue for sentence generation. When the number of concurrent sentence
 generation tasks falls below the limit
 
-![img](https://github.com/riversun/ChatStream/assets/11747460/f743ba6a-64ec-4f44-80aa-ba9a8d9c7875)
+![img](https://riversun.github.io/chatstream/chatstream_queue.png)
 
 # How to use
 
