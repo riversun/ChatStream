@@ -1,5 +1,6 @@
-# 特長
+# ChatStream とは
 
+ChatStream はスケーラブルな LLM チャットサーバー構築のためのツールキットです
 
 ### 1. ストリーミングチャットを簡単構築
 
@@ -39,5 +40,5 @@ num_of_concurrent_executions: int ... 事前学習済言語モデルへの文章
 max_queue_size: int ... 文章生成の待ち行列（キュー）のサイズ。文章生成タスクの同時実行数がリミットを下回ったらリクエストタスクはキューから取り出され文章生成タスクが開始される
 ```
 
-![img](https://github.com/riversun/ChatStream/assets/11747460/f743ba6a-64ec-4f44-80aa-ba9a8d9c7875)
+![img](https://riversun.github.io/chatstream/chatstream_queue.png)
 
