@@ -71,7 +71,8 @@ async def process_chat(model, tokenizer, device, params, prompt):
 
     use_repetition_penalty = params.get("use_repetition_penalty", False)
 
-    repetition_penalty = params.get("repetition_penalty", 1),
+    repetition_penalty = params.get("repetition_penalty", 1)
+
     repetition_penalty_method = params.get("repetition_penalty_method", "multiplicative")
     use_bos_for_input = params.get("use_bos_for_input", False)
 
@@ -134,13 +135,18 @@ async def process_chat(model, tokenizer, device, params, prompt):
             if temperature < 1e-4:
                 token_id = int(torch.argmax(last_token_logits))
             else:
-                token_id = sampling(logits=last_token_logits,
-                                    k=top_k_value if use_top_k_sampling else None,
-                                    p=top_p_value if use_top_p_sampling else None,
-                                    temperature=temperature,
-                                    past_tokens=output_token_ids,
-                                    penalty=repetition_penalty if use_repetition_penalty else None,
-                                    penalty_method=repetition_penalty_method)
+                if not use_repetition_penalty:
+                    repetition_penalty = None
+
+                token_id = sampling(
+                    logits=last_token_logits,
+                    k=top_k_value if use_top_k_sampling else None,
+                    p=top_p_value if use_top_p_sampling else None,
+                    temperature=temperature,
+                    past_tokens=output_token_ids,
+                    penalty=repetition_penalty,
+                    penalty_method=repetition_penalty_method
+                )
 
             output_token_ids.append(token_id)
 
@@ -155,8 +161,8 @@ async def process_chat(model, tokenizer, device, params, prompt):
                 if stop_strs:
                     for stop_str in stop_strs:
                         if stop_str:
-
                             pos = output.rfind(stop_str, len_prompt)
+                            # print(f"output:'{output}' prompt:{prompt} len_prompt:{len_prompt} stop_str:{stop_str} pos:{pos}")
                             is_stop_str_found = (pos != -1)
                             if is_stop_str_found:
                                 output = output[:pos]
