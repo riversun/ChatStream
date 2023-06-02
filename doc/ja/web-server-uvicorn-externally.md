@@ -1,10 +1,20 @@
 # uvicorn(外部起動)
 
-`example_server_redpajama_simple.py` をサーバーとして起動する場合以下のようにする
+`./example` にある `example_server_redpajama_simple.py` をサーバーとして起動する場合
 
 ```shell
-uvicorn example.example_server_redpajama_simple:app -reload --host 0.0.0.0 --port 8000
+uvicorn example.web_server_redpajama_simple.py:app --host 0.0.0.0 --port 3000
 ```
+
+## uvicornの起動オプション
+
+https://www.uvicorn.org/settings/
+
+
+
+## ソースコード
+
+**example_server_redpajama_simple.py**
 
 ```python
 import torch
@@ -52,7 +62,5 @@ async def stream_api(request: Request):
 async def startup():
     # start request queueing system
     await chat_stream.start_queue_worker()
-
-
 ```
 
