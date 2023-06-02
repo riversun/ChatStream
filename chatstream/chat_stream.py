@@ -3,9 +3,11 @@ import logging
 import os
 import signal
 import traceback
+import json
+import sys
 from typing import Generator
 
-from fastapi import Request
+from fastapi import Request, Response
 from starlette.requests import ClientDisconnect
 from starlette.responses import JSONResponse
 
@@ -13,6 +15,7 @@ from .chat_process import ChatGenerator
 from .chat_process_mock import ChatGeneratorMock
 from .request_handler.simple_session_request_handler import SimpleSessionRequestHandler
 from .util_request_id import set_req_id, req_id
+import importlib.resources as pkg_resources
 
 
 class ChatStream:
@@ -69,7 +72,7 @@ class ChatStream:
             "use_top_p_sampling": top_p is not None,  # True: top P サンプリングを有効にする
             "top_p_value": top_p,  # top P サンプリングの値
             "use_repetition_penalty": repetition_penalty is not None,  # True:繰り返し同じトークンを生成したときのペナルティを有効する
-            "repetition_penalty": repetition_penalty is not None,  # ペナルティの値
+            "repetition_penalty": repetition_penalty,  # ペナルティの値
             "repetition_penalty_method": repetition_penalty_method,  # ペナルティの計算方法
             "add_special_tokens": add_special_tokens,  # トークナイザーの add_special_tokens 設定
         }
@@ -177,6 +180,38 @@ class ChatStream:
 
         self.logger.debug(f"{req_id(request)} このリクエスト用セマフォは解放された")
         return await future_result
+
+    async def handle_clear_context_request(self, request: Request, request_body=None, callback=None):
+        """
+        コンテクストをクリアする
+        (TODO セッションハンドラーが前提となっているため、 simple_session_request_handler.py に委譲すること)
+        :param request:
+        :param request_body:
+        :param callback:
+        :return:
+        """
+        try:
+            session_mgr = getattr(request.state, "session", None)
+            if session_mgr:
+                # セッションオブジェクト（辞書オブジェクト）を取得する
+                session = session_mgr.get_session()
+                chat_prompt = session.get("chat_prompt")
+                if chat_prompt:
+                    session.pop("chat_prompt", None)  # 削除する
+
+                # session_mgr.clear_session()
+                self.logger.debug(f"sid:{session_mgr.get_session_id()} コンテクストがクリアされました")
+
+                return {"success": True, "message": "context successfully cleared"}
+            else:
+                self.logger.debug(f"コンテクストをクリアしようとしましたが、セッションは存在しませんでした")
+                return {"success": False, "message": "no context."}
+
+        except Exception as e:
+            tb = traceback.format_exc()
+            sys.stderr.write(tb)
+            self.logger.debug(f"コンテクストをクリアしようとしたところ予期せぬエラーが発生しました")
+            return {"success": False, "message": "error occurred"}
 
     async def handle_console_input(self, user_input: str) -> Generator:
         """
@@ -326,3 +361,30 @@ class ChatStream:
 
         # 強制終了のシャットダウンハンドラを登録
         signal.signal(signal.SIGINT, lambda s, f: os._exit(0))
+
+    def _send_resource(self, file_name, response: Response, replacer=None):
+
+        data = pkg_resources.read_text(f"{__package__}.data", file_name)
+        if replacer:
+            data = replacer(data)
+
+        response.body = data.encode('utf-8')  # You need to encode string to bytes
+        response.media_type = "text/html"
+        response.status_code = 200  # Add this line
+
+        return response
+
+    def index(self, response: Response, opts={}):
+
+        ui_init_params = opts.get("ui_init_params", None)
+
+        if ui_init_params:
+            def replacer(text):
+                return text.replace('const opts = {}', f'const opts = {json.dumps(ui_init_params)}')
+
+            return self._send_resource(file_name="index.html", replacer=replacer, response=response)
+        else:
+            return self._send_resource(file_name="index.html", response=response)
+
+    def js(self, response: Response):
+        return self._send_resource(file_name="chatstream.js", response=response)
