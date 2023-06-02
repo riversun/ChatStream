@@ -22,9 +22,24 @@ def sampling(logits, k=None, p=None, temperature=1.0, past_tokens=None, penalty=
         token_id (int): The sampled token ID.
     """
 
+
+
     # Apply a penalty to the logits of past tokens
     # 過去のトークンのlogitsにペナルティを適用
     if penalty is not None and past_tokens is not None:
+        # Check if logits contain any abnormal values
+        if torch.any(torch.isnan(logits)) or torch.any(torch.isinf(logits)):
+            print("Logits contain NaN or Inf values. Replacing with very large / small numbers.")
+            logits = torch.where(torch.isnan(logits), torch.full_like(logits, 0), logits)
+            logits = torch.where(torch.isinf(logits) & (logits > 0),
+                                 torch.full_like(logits, torch.finfo(logits.dtype).max),
+                                 logits)
+            logits = torch.where(torch.isinf(logits) & (logits < 0),
+                                 torch.full_like(logits, torch.finfo(logits.dtype).min),
+                                 logits)
+
+        if not isinstance(penalty, (int, float)):
+            raise ValueError(f"penalty should be a scalar value, but got {penalty}({type(penalty)})")
         if penalty_method == "multiplicative":
             for token in past_tokens:
                 logits[token] *= penalty
