@@ -79,6 +79,7 @@ async def startup():
 
 ## 目次
 
+- [ChatStreamとは](doc/ja/features.md)
 - [プロンプトクラス ChatPrompt のインポート](doc/ja/chat-prompt.md)
 - [モデルクラスの読み込み](doc/ja/load-hf-model.md)
 - [HTTP セッションミドルウェアの設定](doc/ja/middleware-session.md)
@@ -105,13 +106,15 @@ async def startup():
 
 
 - コンソールチャットの実装
-  - モデルの動作確認用に簡易的なコンソールチャットを実行する
+  - [モデルの動作確認用に簡易的なコンソールチャットを実行する](doc/ja/console-chat.md)
 
 
 - 開発時の設定
   - [CORS ミドルウェアの設定](doc/ja/middleware-cors.md)
   - [モックレスポンスの利用（高速起動）](doc/ja/mock_response.md)
   - [ロギングの設定](doc/ja/logging.md)
+  - [再掲:ユーザーからのリクエストの読み取り](doc/ja/handle-request-intercept.md)
+  - [時間のかかるモデル読み込みにプログレスバーをつける](doc/ja/load-model-with-pbar.md)
 
 
 - 高度な設定
