@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatStream</title>
+</head>
+<body class="m-0 p-0">
+<section>
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <div class="chatux2-chat-container">
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<section>
+    <div class="container chatux2-input-container">
+    </div>
+</section>
+
+<script src="chatstream.js"></script>
+<script>
+    (async () => {
+        const chatstream = new ChatStreamUI();
+        const opts = {};
+        await chatstream.init(opts);
+    })()
+</script>
+</body>
+</html>
