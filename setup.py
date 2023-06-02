@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="chatstream",
-    version="0.1.5",
+    version="0.2.0",
     author="Tom Misawa",
     author_email="riversun.org@gmail.com",
     description="A streaming chat toolkit for pre-trained large language models(LLM)",
@@ -23,6 +23,7 @@ setup(
     install_requires=[
         "fastapi",
         "fastsession",
-        "tokflow"
+        "tokflow",
+        "loadtime"
     ]
 )
