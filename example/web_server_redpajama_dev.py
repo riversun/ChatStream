@@ -4,13 +4,24 @@ from fastapi import FastAPI, Request
 from fastsession import FastSessionMiddleware, MemoryStore
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
-from chatstream import ChatStream, ChatPromptTogetherRedPajamaINCITEChat as ChatPrompt
+from chatstream import ChatStream, ChatPromptTogetherRedPajamaINCITEChat as ChatPrompt, LoadTime
+import logging
+
+"""
+ChatStream web server for development use. View logs, allow HTTP, CORS with reduced security
+"""
 
 model_path = "togethercomputer/RedPajama-INCITE-Chat-3B-v1"
 device = "cuda"  # "cuda" / "cpu"
 
+# use loadtime for loading progress
+model = LoadTime(name=model_path,
+                 fn=lambda: AutoModelForCausalLM.from_pretrained(model_path, torch_dtype=torch.float16))()
+
+# model = AutoModelForCausalLM.from_pretrained(model_path, torch_dtype=torch.float16)
+
 tokenizer = AutoTokenizer.from_pretrained(model_path)
-model = AutoModelForCausalLM.from_pretrained(model_path, torch_dtype=torch.float16)
+
 model.to(device)
 
 chat_stream = ChatStream(
@@ -21,8 +32,6 @@ chat_stream = ChatStream(
     device=device,
     chat_prompt_clazz=ChatPrompt,
 )
-
-import logging
 
 chat_stream.logger.setLevel(logging.DEBUG)
 
