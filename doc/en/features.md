@@ -1,44 +1,46 @@
-# ChatStream とは
+# What is ChatStream
+ChatStream is a toolkit for building scalable LLM streaming chat servers.
 
-ChatStream はスケーラブルな LLM チャットサーバー構築のためのツールキットです
+## 1. Easy to implement Streaming Chats
 
-### 1. ストリーミングチャットを簡単構築
+You can easily develop streaming chats with pre-trained large language models based on HuggingFace.
 
-HuggingFace ベースの事前学習済の大規模言語モデルの **ストリーミングチャット** を簡単に構築
-
-**ストリーミングチャットとは**
-
-事前学習済言語モデルで文章生成するとき、入力されたプロンプト（とこれまでの会話履歴）をもとに
-次の **文章をすべて生成してから出力** する方式と、次の **文章を１トークンずつ逐次出力する** 方式があります。
-
-前者の方式を「一括生成」、  
-後者の方式をとくに「ストリーミング生成」と呼びます。
-
-|                                | メリット                          | デメリット                                                       |
-|:-------------------------------|:------------------------------|:------------------------------------------------------------|
-| 一括生成                        | ・設計がシンプル                      | ・文章生成終了まで待たされる。<br>特にサーバーが込み合っているときは、<br>いつまでも結果がでずストレス |
-| **ストリーミング生成** <br>(逐次文章生成) | ・逐次生成されるので、<br>文章生成完了まで待たされない | ・設計が複雑                                                      |
+'Streaming Chat' refers to two ways of text generation with pre-trained language models: 
 
 
-本パッケージでは、トークン生成を 1トークンごと に行われ、それをクライアントに対してストリーミングレスポンス（逐次送信）します。
+In HuggingFace's transformers library, these two methods of text generation with a large language model (LLM) are typically referred to as follows:
 
-これによりすべての文章が生成されるまで待たされるのにくらべ、ベターなユーザーエクスペリエンスの実現に寄与します
+1. **Step-by-step token generation** : This method involves generating the next token of a sentence one at a time.
 
-### 2. 会話履歴を保持し、会話コンテクストをキープしたマルチラウンドの会話ができる
+2. **Whole sentence generation** : This is typically done using a method called "decoding". 
 
-ユーザーと 事前学習済言語モデル との会話履歴は保持されます
+Not only does step-by-step token generation allow for more control and interactivity during 
+the generation process, but it also offers superior user experience in some cases as 
+it allows for understanding the content of the sentence more quickly than whole sentence generation, 
+due to the sequential generation of tokens.
 
-デフォルトでは、HTTPセッションを利用し、ブラウザが開いている間会話がキープされますが、
-要件に応じてログイン機能との連動や会話コンテクストの永続化などを実装することができます。
-        
-### 3. 複数同時アクセス時の安定したチャットストリーム生成
+|                                | Advantages                                 | Disadvantages                                                      |
+|--------------------------------|--------------------------------------------|--------------------------------------------------------------------|
+| Whole sentence generation                | Simple design                             | Users must wait until the sentence generation is finished. This can be particularly stressful when the server is busy and results are not produced. |
+| Streaming Generation           | Does not require waiting for the entire sentence generation. | More complex design                                              |
 
-複数クライアントからの同時アクセスを前提に設計されており、コンストラクタで指定された以下パラメータに従い制御することができます。
+This package performs token generation one token at a time, which is sent as a streaming response to the client. 
 
-```        
-num_of_concurrent_executions: int ... 事前学習済言語モデルへの文章生成タスクの同時実行数
-max_queue_size: int ... 文章生成の待ち行列（キュー）のサイズ。文章生成タスクの同時実行数がリミットを下回ったらリクエストタスクはキューから取り出され文章生成タスクが開始される
+This contributes to a better user experience compared to waiting until the entire sentence is generated.
+
+## 2. Keep conversation history, Allowing for Multi-round Conversations while Maintaining the Conversation Context
+
+The conversation history between the user and the pre-trained language model is retained. 
+
+By default, HTTP sessions are used, keeping the conversation while the browser is open. Depending on your needs, you can implement login functionality, persistent conversation contexts, etc.
+
+## 3. Stable Chat Stream Generation During Multiple Concurrent Accesses
+
+Designed with multiple concurrent client accesses in mind, it can be controlled according to the following parameters specified in the constructor.
+
+```
+num_of_concurrent_executions: int ... The number of simultaneous sentence generation tasks for the pre-trained language model
+max_queue_size: int ... The size of the queue for sentence generation. If the number of concurrent sentence generation tasks falls below the limit, the request task is taken from the queue and the sentence generation task begins.
 ```
 
 ![img](https://riversun.github.io/chatstream/chatstream_queue.png)
-
