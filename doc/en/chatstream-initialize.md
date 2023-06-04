@@ -1,11 +1,13 @@
-# ChatStream の生成と初期化
+Here's the English version of your markdown:
 
-ChatStream クラスは ChatStream パッケージのコアとなるクラスで、FastAPI/Starlette の Request を受け取り、
-負荷制御をしながらストリーミングレスポンスをクライアントに送出する役割をもっています。
+# Generation and Initialization of ChatStream
 
-以下のように model,tokenizer,device, 最大同時処理数 `num_of_concurrent_executions` 、待ち行列の最大数 `max_queue_size` ,プロンプトクラス ChatPrompt を指定して初期化します
+The ChatStream class is the core of the ChatStream package. It receives a Request from FastAPI/Starlette and is responsible for sending a streaming response to the client while controlling the load.
+
+Initialize it by specifying the model, tokenizer, device, the maximum number of concurrent executions `num_of_concurrent_executions`, the maximum size of the waiting queue `max_queue_size`, and the prompt class `ChatPrompt`.
 
 ```python
+from chatstream import ChatStream
 tokenizer = AutoTokenizer.from_pretrained(model_path)
 model = AutoModelForCausalLM.from_pretrained(model_path, torch_dtype=torch.float16)
 model.to(device)
@@ -18,60 +20,61 @@ chat_stream = ChatStream(
     device=device,
     chat_prompt_clazz=ChatPrompt,
 )
-
 ```
 
-## オプション一覧
+## List of Options
 
-ChatStream の初期化オプション（コンストラクタ引数）一覧
+List of initialization options (constructor arguments) for ChatStream.
 
-|パラメータ名|説明|
+|Parameter name|Description|
 |:----|:----|
-|model|HuggingFace形式の事前学習済み言語モデル。|
-|tokenizer|HuggingFace形式のトークナイザ。|
-|device|実行デバイス。"cpu" / "cuda" / "mps"から選択。|
-|num_of_concurrent_executions|事前学習済み言語モデルにおける文章生成タスクの同時実行数。デフォルトは2。|
-|max_queue_size|事前学習済み言語モデルにおける文章生成タスクの最大キューサイズ。デフォルトは5。|
-|too_many_request_as_http_error|'Too many requests'の状況が発生した場合、ステータスを429として返すかどうか。デフォルトはFalse。|
-|use_mock_response|テストのための固定フレーズを返すかどうか。モデルを読み込む必要がないため、すぐに起動する。デフォルトはFalse。|
-|mock_params|use_mock_response=Trueの時に返すフレーズのタイプ "round" / "long"。デフォルトは{"type": "round"}。|
-|chat_prompt_clazz|言語モデルに送られるプロンプトを管理するクラス。AbstractChatPromptから継承し、各モデルのエチケットに従ったチャットプロンプトを生成するクラスを実装する。|
-|max_new_tokens|新たに生成されるトークンの最大サイズ。デフォルトは256。|
-|context_len|コンテキストのサイズ（トークン数）。デフォルトは1024。|
-|temperature|予測におけるランダム性の温度値。デフォルトは1.0。|
-|top_k|サンプリングのためのtop Kの値。デフォルトは50。|
-|top_p|サンプリングのためのtop Pの値。デフォルトは1.0。|
-|repetition_penalty|繰り返しのペナルティ。デフォルトはNone。|
-|repetition_penalty_method|繰り返しのペナルティの計算方法。デフォルトは"multiplicative"。|
-|add_special_tokens|トークナイザのオプション。デフォルトはNone。|
-|request_handler|リクエストハンドラ。デフォルトでは、セッションを簡単に保持するハンドラがデフォルト。|
-|logger|ロギングオブジェクト。デフォルトはNone。|
+|model|A pre-trained language model in HuggingFace format.|
+|tokenizer|A tokenizer in HuggingFace format.|
+|device|Execution device. Choose from "cpu" / "cuda" / "mps".|
+|num_of_concurrent_executions|The number of simultaneous text generation tasks in the pre-trained language model. Default is 2.|
+|max_queue_size|The maximum queue size for text generation tasks in the pre-trained language model. Default is 5.|
+|too_many_request_as_http_error|Whether to return status 429 when a 'Too many requests' situation occurs. Default is False.|
+|use_mock_response|Whether to return a fixed phrase for testing. As it does not need to load the model, it starts up immediately. Default is False.|
+|mock_params|The type of phrase to return when use_mock_response=True "round" / "long". Default is {"type": "round"}.|
+|chat_prompt_clazz|The class that manages the prompt sent to the language model. Implement a class that generates a chat prompt according to the etiquette of each model, inheriting from AbstractChatPrompt.|
+|max_new_tokens|The maximum size of newly generated tokens. Default is 256.|
+|context_len|The size of the context (number of tokens). Default is 1024.|
+|temperature|The temperature value of randomness in prediction. Default is 1.0.|
+|top_k|The value of top K for sampling. Default is 50.|
+|top_p|The value of top P for sampling. Default is 1.0.|
+|repetition_penalty|Penalty for repetition. Default is None.|
+|repetition_penalty_method|The method of calculating the penalty for repetition. Default is "multiplicative".|
+|add_special_tokens|Option for the tokenizer. Default is None.|
+|request_handler|Request handler. By default, a handler that easily retains the session.|
+|logger|Logging object. Default is None.|
 
-
-例）
+Example:
 
 ```python
+from chatstream import ChatStream,SimpleSessionRequestHandler
 chat_stream = ChatStream(
-     model=None,  # HuggingFace形式の事前学習済み言語モデル
-     tokenizer=None,  # HuggingFace形式のトークナイザ
-     device=None,  # 実行デバイス "cpu" / "cuda" / "mps"
-     num_of_concurrent_executions: int = 2,     # 事前学習済み言語モデルにおける文章生成タスクの同時実行数
-     max_queue_size: int = 5,     # 事前学習済み言語モデルにおける文章生成タスクの最大キューサイズ
-     too_many_request_as_http_error=False,     # 'Too many requests'の状況が発生した場合、ステータスを429として返す
-     use_mock_response=False,     # テストのための固定フレーズを返す。モデルを読み込む必要がないため、すぐに起動する
-     mock_params={type: "round"},     # use_mock_response=Trueの時に返すフレーズのタイプ "round" / "long"
-     chat_prompt_clazz=None,     # 言語モデルに送られるプロンプトを管理するクラスを指定。AbstractChatPromptから継承し、各モデルのエチケットに従ったチャットプロンプトを生成するクラスを実装する
-     max_new_tokens=256,  # 新たに生成されるトークンの最大サイズ
-     context_len=1024,  # コンテキストのサイズ（トークン数）
-     temperature=1.0,  # 予測におけるランダム性の温度値
-     top_k=50,  # サンプリングのためのtop Kの値
-     top_p=1.0,  # サンプリングのためのtop Pの値
-     repetition_penalty=None,  # 繰り返しのペナルティ
-     repetition_penalty_method="multiplicative",  # 繰り返しのペナルティの計算方法
-     # トークン関連の処理
-     add_special_tokens=None,  # トークナイザのオプション
-     request_handler=SimpleSessionRequestHandler(),
-     # リクエストハンドラ。デフォルトでは、セッションを簡単に保持するハンドラがデフォルト
-     logger=None,  # ロギングオブジェクト
+    model=None,  # A pre-trained language model in HuggingFace format
+    tokenizer=None,  # A tokenizer in HuggingFace format
+    device=None,  # Execution device "cpu" / "cuda" / "mps"
+    num_of_concurrent_executions=2,
+    # The number of simultaneous text generation tasks in the pre-trained language model
+    max_queue_size=5,  # The maximum queue size for text generation tasks in the pre-trained language model
+    too_many_request_as_http_error=False,  # Whether to return status 429 when a 'Too many requests' situation occurs
+    use_mock_response=False,  # Whether to return a fixed phrase for testing
+    mock_params={type: "round"},  # The type of phrase to return when use_mock_response=True "round" / "long"
+    chat_prompt_clazz=None,  # The class that manages the prompt sent to the language model
+    max_new_tokens=256,  # The maximum size of newly generated tokens
+    context_len=1024,  # The size of the context (number of tokens)
+    temperature=1.0,  # The temperature value of randomness in prediction
+    top_k=50,  # The value of top K for sampling
+    top_p=1.0,  # The value of top P for sampling
+    repetition_penalty=None,  # Penalty for repetition
+    repetition_penalty_method="multiplicative",  # The method of calculating the penalty for repetition
+    add_special_tokens=None,  # Option for the tokenizer
+    request_handler=SimpleSessionRequestHandler(),
+    # Request handler. By default, a handler that easily retains the session
+    logger=None,  # Logging object
 )
+
+
 ```

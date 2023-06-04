@@ -1,51 +1,48 @@
-# プロンプトクラス一覧
+# List of Prompt Classes
 
-以下にあるHuggingFace 事前学習済言語モデル一覧から使いたいモデルを開くと、対応するプロンプトクラスのインポート方法が確認できます
+You can confirm how to import the corresponding prompt class by opening the pre-trained language model you want to use from the list below provided by HuggingFace.
 
 <details>
 <summary>rinna/japanese-gpt-neox-3.6b-instruction-sft</summary>
 
-**プロンプトクラス**
+**Prompt class**
 
 - ChatPromptRinnaJapaneseGPTNeoxInst
 
-**対象モデル**
+**Target model**
 
 [rinna/japanese-gpt-neox-3.6b-instruction-sft](https://huggingface.co/rinna/japanese-gpt-neox-3.6b-instruction-sft)
 
+**Main supported language**
 
-**主要対応言語**
+- Japanese
 
-- 日本語
-
-**インポート方法**
+**How to import**
 
 ```python
 from chatstream import ChatPromptRinnaJapaneseGPTNeoxInst as ChatPrompt
 ```
 </details>
 
-
-
 <details>
 <summary>together/RedPajama-INCITE-Chat-3B-v1</summary>
 
-**プロンプトクラス**
+**Prompt class**
 
 - ChatPromptTogetherRedPajamaINCITEChat
 
-**対象モデル**
+**Target model**
 
 [together/RedPajama-INCITE-Chat-3B-v1](https://huggingface.co/togethercomputer/RedPajama-INCITE-Chat-3B-v1)
 
+**Main supported language**
 
-**主要対応言語**
+- English
 
-- 英語
-
-**インポート方法**
+**How to import**
 
 ```python
 from chatstream import ChatPromptTogetherRedPajamaINCITEChat as ChatPrompt
 ```
+
 </details>

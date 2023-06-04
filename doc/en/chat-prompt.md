@@ -1,40 +1,40 @@
-# ChatPrompt とは
+# What is ChatPrompt?
 
-ChatPrompt とは、事前学習済言語モデル（以降、モデル）用のプロンプトを生成するためのクラスです。プロンプトクラスと呼びます。
+ChatPrompt is a class for generating prompts for pre-trained language models (hereafter referred to as models). We call it a prompt class.
 
-たとえば、 **redpajama-incite** の場合は以下のようなプロンプトをつくり、モデルに入力します。
+For example, in the case of **redpajama-incite**, the following prompt is created and entered into the model.
 
 ```text
 <human>: Who is Alan Turing
-<bot>:
+<bot>: Who is Alan Turing
 ```
 
-すると、モデルは続きの文章を生成し、以下を出力します。
+The model will then generate the following sentence and output the following.
 
 ```text
 <human>: Who is Alan Turing
 <bot>: He was a very honorable man.
 ```
 
-この例では `<human>` と `<bot>` の後に `:` が続き、`\n` で区切られています。
+In this example, `<human>` and `<bot>` are followed by `:` and separated by `\n`.
 
-こうしたルール、お作法はモデルごとに微妙に異なっています。
+These rules and conventions vary slightly from model to model.
 
-このプロンプトの生成や会話履歴の保持を行うクラスが ChatPrompt で、 **プロンプトクラス** と呼びます。
+The class that generates the prompts and keeps the conversation history is ChatPrompt, which is called the **prompt class**.
 
-前述の通り、モデルごとにお作法が違うので、モデルごとの **プロンプトクラス** が必要になります。
+As mentioned above, since each model has its own mannerisms, we need a **prompt class** for each model.
 
-### プリセット プロンプトクラス
+### Preset Prompt Classes
 
-ChatStream では、いくつかの有名なモデルについてはプロンプトクラス = **ChatPromptクラス** を準備しています。
+ChatStream provides prompt classes = **ChatPrompt classes** for some well-known models.
 
-以下の一覧から使いたいモデルのプロンプトクラスのインポート方法を確認できます。
+You can see how to import the prompt class for the model you want to use from the list below.
 
-- [プロンプトクラス一覧](chat-prompt-presets.md)
+- [ - Prompt class list](chat-prompt-presets.md)
 
 
-### プロンプトクラスの自作
+### Creating your own prompt classes
 
-新しいモデルなど、まだプロンプトクラスが無い場合は自作することができます。
+If there is no prompt class yet, such as in a new model, you can create your own.
 
-- [プロンプトクラスの実装方法](chat-prompt-how-to-impl.md)
+- [ - How to implement prompt classes](chat-prompt-how-to-impl.md)
