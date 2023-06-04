@@ -89,31 +89,31 @@ async def startup():.
 
 - Implementation of Web API Endpoints
   - [ - Endpoint Implementation](doc/en/handle-request.md)
-  - [ -- Receive streaming transmission completion callback](doc/en/handle-request-finish-callback.md)
-  - [ -- Read requests from users](doc/en/handle-request-intercept.md)
+  - [ - Receive streaming transmission completion callback](doc/en/handle-request-finish-callback.md)
+  - [ - Read requests from users](doc/en/handle-request-intercept.md)
   - [ - How to set up an HTTP session](doc/en/handle-request-session.md)
 
 
 - Queueing System and Concurrency Limit
-  - [ -- What is the queueing system](doc/en/queue-system.md)
-  - [ -- Starting the Queueing System](doc/en/queue-system-start.md)
+  - [ - What is the queueing system](doc/en/queue-system.md)
+  - [ - Starting the Queueing System](doc/en/queue-system-start.md)
 
 
 - Start the Web server (ASGI server)
-  - [ -- uvicorn (start from inside)](doc/en/web-server-uvicorn-internally.md)
-  - [ -- uvicorn (start from outside)](doc/en/web-server-uvicorn-externally.md)
-  - [ -- gunicorn](doc/en/web-server-gunicorn.md)
+  - [ - uvicorn (start from inside)](doc/en/web-server-uvicorn-internally.md)
+  - [ - uvicorn (start from outside)](doc/en/web-server-uvicorn-externally.md)
+  - [ - gunicorn](doc/en/web-server-gunicorn.md)
 
 
 - Console chat implementation
-  - [ -- Run a simple console chat to check the model behavior](doc/en/console-chat.md)
+  - [ - Run a simple console chat to check the model behavior](doc/en/console-chat.md)
 
 
 - Configuration during development
-  - [ -- CORS middleware settings](doc/en/middleware-cors.md)
-  - [ -- Using Mock Response (Fast Startup)](doc/en/mock_response.md)
-  - [ -- Logging Settings](doc/en/logging.md)
-  - [ -- Reading requests from users](doc/en/handle-request-intercept.md)
+  - [ - CORS middleware settings](doc/en/middleware-cors.md)
+  - [ - Using Mock Response (Fast Startup)](doc/en/mock_response.md)
+  - [ - Logging Settings](doc/en/logging.md)
+  - [ - Reading requests from users](doc/en/handle-request-intercept.md)
   - [ - Attach progress bar to time-consuming model loading](doc/en/load-model-with-pbar.md)
 
 
