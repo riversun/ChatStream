@@ -18,7 +18,7 @@ async def stream_api(request: Request):
 [ユーザーからのリクエストの読み取り](handle-request-intercept.md)
 
 #### このエンドポイントの実装内でセッション変数にアクセスしたい場合は以下を参照してください
-[handle-request-session.md](handle-request-session.md)
+[ - handle-request-session.md](handle-request-session.md)
 
 
 #### このエンドポイントの実装内で、文章生成の完了をキャッチしたい場合は以下を参照してください

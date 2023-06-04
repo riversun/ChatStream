@@ -77,6 +77,3 @@ app.add_middleware(FastSessionMiddleware,
                    secure=False,  # False: For local development env. True: For production. Requires Https
                    )
 ```
-
-ユーザーと
-なお、ChatPromptForModel クラス

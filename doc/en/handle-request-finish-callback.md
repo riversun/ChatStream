@@ -1,20 +1,19 @@
-# チャットストリームの送出完了のコールバックを受け取る
+# Receiving a Callback upon Completion of Chat Stream Transmission
 
-ChatStream では、ストリーミングレスポンスを行うため、エンドポイントで `return reponse` を行ったタイミングが文章生成処理の終了ではありません。
+In ChatStream, because we perform a streaming response, the timing of `return response` in the endpoint does not signify the completion of text generation.
 
-そこで、文章生成の完了のタイミングをキャッチしたい場合、
-エンドポイントの実装で、 `handle_starlette_request` の引数 `callback` にコールバック関数を指定します。
+Therefore, if you want to catch the timing of the completion of text generation, specify a callback function in the argument `callback` of `handle_starlette_request` in the implementation of the endpoint.
 
-文章生成が完了すると、指定したコールバック関数が呼び出されます
+When the text generation is completed, the specified callback function will be called.
 
 ```python
 @app.post("/chat_stream")
 async def stream_api(request: Request):
 
     def callback_func(request, message):
-        # 文章生成が終了したとき
+        # When text generation is completed
         
-        # ここでは、セッションに格納されている ChatPrompt を取得して、これまでの会話履歴をもとにプロンプトを生成する例
+        # Here, as an example, we retrieve the ChatPrompt stored in the session and generate a prompt based on the past conversation history.
         session_mgr = getattr(request.state, "session", None)
         session = session_mgr.get_session()
         chat_prompt = session.get("chat_prompt")
@@ -27,11 +26,11 @@ async def stream_api(request: Request):
     return response
 ```
 
-### 文章生成終了時のコールバック関数のパラメータ message の取り得る値と意味
+### Possible Values and Meanings of the Parameter `message` in the Callback Function at the Time of Text Generation Completion
 
-|message の値|説明|
+|Value of `message`|Explanation|
 |:----|:----|
-|success|ストリームがクライアントに向け正常に送出された|
-|client_disconnected_while_streaming|ストリーム送出中にクライアントから切断された|
-|client_disconnected_before_streaming|ストリーム送出前にクライアントから切断されていた|
-|unknown_error_occurred|ストリーム送出中に予期せぬエラーが発生した|
+|success|The stream was successfully sent to the client|
+|client_disconnected_while_streaming|The client disconnected during the stream transmission|
+|client_disconnected_before_streaming|The client had disconnected before the stream transmission|
+|unknown_error_occurred|An unexpected error occurred during the stream transmission|

@@ -1,6 +1,6 @@
-# コンソールチャットの作成
+# Creating Console Chat
 
-`handle_console_input` メソッドを使用することで CLI ベースのチャットを簡単に作成しモデルを試すことができます
+The `handle_console_input` method makes it easy to create a CLI-based chat and test the model
 
 ```python
 import asyncio

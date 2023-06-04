@@ -1,5 +1,5 @@
-# GPU 分散化　→　マルチ GPU への対応
+# GPU decentralization → multi-GPU support
 
 **coming soon**
 
-複数の GPU の負荷状態を監視してリクエストを制御する ChatStreamPool の使用方法
+How to use ChatStreamPool to monitor load state of multiple GPUs and control requests

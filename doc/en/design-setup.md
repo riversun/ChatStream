@@ -1,6 +1,6 @@
-# 設計編： ChatStream ライブラリ 開発環境の構築
+## Design: Building the ChatStream Library Development Environment
 
-## Conda 仮想環境の構築
+## Build Conda virtual environment
 
 ```
 conda update -n base -c defaults conda --yes
@@ -9,7 +9,7 @@ conda activate env-chatstream
 conda install python=3.10.10 --yes
 ```
 
-## 必要パッケージのインストール
+## Install required packages
 
 ```
 python -m pip install --upgrade pip
@@ -22,7 +22,7 @@ pip install "uvicorn[standard]" gunicorn
 pip install loadtime
 ```
 
-## Conda 仮想環境の削除
+## Remove Conda virtual environment
 
 ```
 conda deactivate

@@ -1,18 +1,18 @@
-# uvicorn(外部起動)
+# uvicorn (External Launch)
 
-`./example` にある `example_server_redpajama_simple.py` をサーバーとして起動する場合
+If you want to launch `example_server_redpajama_simple.py` in `./example` as a server,
 
 ```shell
 uvicorn example.web_server_redpajama_simple.py:app --host 0.0.0.0 --port 3000
 ```
 
-## uvicornの起動オプション
+## uvicorn launch options
 
 https://www.uvicorn.org/settings/
 
 
 
-## ソースコード
+## Source Code
 
 **example_server_redpajama_simple.py**
 

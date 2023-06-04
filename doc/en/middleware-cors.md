@@ -1,8 +1,8 @@
-# CORS ミドルウェアの設定
+# Setting Up CORS Middleware
 
-チャットUI開発時などローカルで ChatStream サーバーを実行する場合、 UIをホストするサーバーと、ChatStream サーバーのホスト/ポートが異なる場合があります
+When running a ChatStream server locally, such as during chat UI development, the host/server and port of the ChatStream server may differ from that of the server hosting the UI.
 
-CORS ミドルウェアを FastAPI に設定して、クロスオリジンアクセスを緩和することができます
+By setting up CORS middleware in FastAPI, you can mitigate cross-origin access.
 
 ```python
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,10 +16,9 @@ app.add_middleware(
 )
 ```
 
-## 関連:セッションミドルウェアの設定
+## Related: Setting up Session Middleware
 
-ローカル開発時には HTTPS でない場合があるため、同時にセッションミドルウェアの設定もローカル開発にあわせるため
-開発時にかぎって以下のように `secure=False` にることができます
+During local development, there may be cases where HTTPS is not used. Therefore, to adapt the session middleware settings to local development, you can set `secure=False` for development only, as follows:
 
 ```python
 from fastsession import FastSessionMiddleware, MemoryStore
@@ -31,5 +30,6 @@ app.add_middleware(FastSessionMiddleware,
                    )
 ```
 
-**参考**  
-[セッションミドルウェア](middleware-session.md)
+**Reference**  
+
+[Session Middleware](middleware-session.md)

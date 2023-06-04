@@ -1,53 +1,40 @@
-# キューイングシステムとは
+# What is a Queuing System
 
-ChatStream は多数同時アクセス要求が来たときに、
-リクエストをキューイングし、同時に実行できる文章生成の数を制限することができます。
+ChatStream can queue requests and limit the number of sentence generations that can be executed simultaneously when a large number of concurrent access requests are received.
 
-GPU や CPU の性能に応じて、文章生成処理の同時実行数を制限することで、良好な応答性能を得ることができます。
+By limiting the number of concurrent sentence generation processes according to the performance of the GPU or CPU, you can achieve good response performance.
 
-また同時実行数を超えるリクエストがあった場合はリクエストをキューイング（待ち行列に追加）し、
-順次実行することで、負荷を適切にコントロールします。
+Moreover, if there are requests exceeding the concurrent execution limit, the system queues these requests (adds them to a waiting queue) and executes them sequentially, appropriately controlling the load.
 
-## 同時実行とは
+## What is Concurrent Execution
 
-同時実行とは　1GPU で実行する場合には、正確には同時実行ではなく **並行実行**(concurrent) となります。
+In the case of execution on one GPU, it's not accurately "simultaneous execution" but "concurrent execution".
 
-同時実行数をセットすると、その数だけ **並行実行** されます。
+When the maximum number of concurrent executions is set, that many will be "concurrently executed".
 
-たとえば、同時実行数の最大値が2に設定されている状態で、2人のユーザー1、ユーザー2　が同じタイミングにリクエストしてきた場合
-2人のリクエストは **処理キュー** （文章生成中をあらわすキュー）に入り**１トークンごとに交互に文章を生成** します。
-例えば日本語のモデルの場合、1トークンはほぼ1文字に相当しますので、ユーザー1向けの文章に1文字追加したらユーザー2向けの文章に1文字追加します。
-これを文章生成が終わるまで繰り返します。
+For example, in a state where the maximum number of concurrent executions is set to 2, if two users, User 1 and User 2, request at the same timing, the requests of the two users will be added to the "processing queue" (a queue representing sentence generation in progress), generating sentences alternately for each token. In the case of a Japanese model, one token roughly corresponds to one character, so if one character is added to the sentence for User 1, one character will be added to the sentence for User 2. This is repeated until sentence generation is completed.
 
-ユーザー3が途中で割り込んできた場合、まだユーザー1とユーザー2の文章は生成されている途中ですので、ユーザーCのリクエストは **リクエストキュー** （処理待ち行列) に入ります。
+If User 3 interrupts in the middle, since the sentences for User 1 and User 2 are still being generated, the request of User C will be added to the "request queue" (waiting queue).
 
-ユーザー1またはユーザー2の文章生成が終了すると、 **リクエストキュー** に入っているユーザー3のリクエストが **処理キュー** に入り、
-文章生成処理が開始されます。
+When the sentence generation of User 1 or User 2 is completed, the request of User 3, which is in the "request queue", will be added to the "processing queue", and the sentence generation process will begin.
 
 ![img](https://riversun.github.io/chatstream/chatstream_queue.png)
 
 
-### コラム: 非同期I/O と並行実行
+### Column: Asynchronous I/O and Concurrent Execution
 
-    FastAPIは非同期I/Oをサポートしており、これは複数のリクエストを並行に処理する能力があります。
-    Pythonの非同期I/Oは、コルーチンと呼ばれる特殊な関数を使用して並行性を実現しています。
-    この場合の並行性とは、一度に一つのタスクだけが進行するが、I/O操作（HTTPリクエスト、モデルからのトークンの生成など）を待つ間に他のタスクを進行させることができる
-    ということです。この形式を"協調的マルチタスク"を呼びます。
-    それぞれのリクエストは別の「非同期タスク」として処理され、これらのタスクは同じスレッド上で切り替えられます。
-    「非同期タスク」においては複数のリクエストに対するモデルへのアクセスが並行しているように見えますが
-    実際にはある瞬間に一つのリクエストだけがモデルを利用しています
-    そのため、それぞれのリクエストが　モデルによるトークン生成のためにブロックする期間は限られており、
-    逐次出力トークンの生成について言えば、１つ新トークンを生成した後で他のリクエストに制御を戻すことができます
-    そのため、一つのリクエストによる文章生成の際、停止トークン、停止文字列が現れるまでの間、
-    他の全てのリクエストがブロックされることはなく、各リクエストはモデルからのトークンを逐次生成しながら、
-    他のリクエストも進行させることができます
+    FastAPI supports asynchronous I/O, which has the ability to process multiple requests concurrently.
+    Python's asynchronous I/O achieves concurrency using special functions called coroutines.
+    In this case, concurrency means that only one task progresses at a time, but other tasks can progress while waiting for I/O operations (HTTP requests, token generation from the model, etc.). This form is called "cooperative multitasking".
+    Each request is processed as a separate "asynchronous task", and these tasks can be switched on the same thread.
+    In "asynchronous tasks", it may seem like multiple requests are concurrently accessing the model, but in reality, only one request is using the model at a given moment.
+    Therefore, the period during which each request blocks for token generation by the model is limited, and in terms of sequential token output, control can be returned to other requests after generating a new token.
+    Thus, during sentence generation by one request, all other requests are not blocked until the stop token or stop string appears, and each request can progress other requests while sequentially generating tokens from the model.
 
-## キューイングの開始
+## Starting Queuing
 
-Web アプリケーションの起動時に　`start_queue_worker` を呼ぶことで、キューワーカーを開始できます
+By calling `start_queue_worker` at the startup of the web application, you can start the queue worker.
 
-キューワーカーを開始すると、リクエスト処理キューが開始され、リクエストをリクエストキューに挿入し、処理キューへと順次実行していくキューイングループが開始されます
+Starting the queue worker starts the request processing queue, and the queuing loop, which inserts requests into the request queue and sequentially executes them into the processing queue, begins.
 
 `chatstream#start_queue_worker`
-
-

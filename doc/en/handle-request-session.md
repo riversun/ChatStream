@@ -1,6 +1,5 @@
-# セッションの利用方法
+# How to Use Sessions
 
-デフォルトでは ChatStream は HTTP セッション を利用しています
+By default, ChatStream uses HTTP sessions.
 
-HTTP セッションは Webブラウザからアクセスしてくるユーザーと ChatPrompt(会話履歴) のひもづけに利用されます。
-
+HTTP sessions are used to associate users accessing from web browsers with ChatPrompts (conversation history).

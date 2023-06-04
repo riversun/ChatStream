@@ -1,10 +1,9 @@
-# エンドポイントの実装
+# Implementation of the Endpoint
 
-`/chat_stream` という URL パスに、ストリーミングチャット用のWebエンドポイントをつくるには
-以下のように `handle_starlette_request` を呼び出します。
+To create a web endpoint for streaming chat at the URL path `/chat_stream`, call `handle_starlette_request` as shown below.
 
-これだけで、ユーザーからのリクエストは　文章生成の同時実行数を制御したストリーミングチャットの実装は完了です
- 
+With this, the implementation of streaming chat, which controls the number of concurrent text generation requests from users, is complete.
+
 ```python
 @app.post("/chat_stream")
 async def stream_api(request: Request):
@@ -13,14 +12,13 @@ async def stream_api(request: Request):
     return response
 ```
 
-#### このエンドポイントの実装内でクライアントからのリクエスト(Request)内容を読み取りたい場合は以下を参照してください
+#### If you want to read the content of the client's request(Request) within this endpoint implementation, refer to the following:
 
-[ユーザーからのリクエストの読み取り](handle-request-intercept.md)
+[Reading User's Request](handle-request-intercept.md)
 
-#### このエンドポイントの実装内でセッション変数にアクセスしたい場合は以下を参照してください
-[handle-request-session.md](handle-request-session.md)
+#### If you want to access session variables within this endpoint implementation, refer to the following:
+[ - handle-request-session.md](handle-request-session.md)
 
 
-#### このエンドポイントの実装内で、文章生成の完了をキャッチしたい場合は以下を参照してください
-[ストリーミング送信完了のコールバックを受け取る](handle-request-finish-callback.md)
-  
+#### If you want to catch the completion of text generation within this endpoint implementation, refer to the following:
+[Receiving a Callback upon Completion of Streaming Transmission](handle-request-finish-callback.md)

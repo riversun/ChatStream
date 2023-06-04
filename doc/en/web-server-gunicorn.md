@@ -1,13 +1,13 @@
 # gunicorn
 
-`./example` にある `example_server_redpajama_simple.py` をサーバーとして起動する場合
+ start `example_server_redpajama_simple.py` as a server.
 
 
 ```shell
 gunicorn example.web_server_redpajama_simple.py:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:3000
 ```
 
-(注意：Windows 環境では動作しません）
+(Note: this will not work in a Windows environment)
 
 ## ソースコード
 

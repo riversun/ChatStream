@@ -1,7 +1,6 @@
-# キューイングシステムの開始
+# Starting the Queuing System
 
-ChatStream を使用するときマルチユーザーの同時アクセスに対応した機能を有効にするためには
-FastAPI が開始したときに、キューイングシステムを起動する必要があります
+When using ChatStream, to enable functionality that supports multi-user concurrent access, you need to start the queuing system when FastAPI is initiated.
 
 ```python
 @app.on_event("startup")
@@ -10,6 +9,6 @@ async def startup():
 await chat_stream.start_queue_worker()
 ```
 
-## 関連
+## See Also
 
-[キューイングシステムとは](queue-system.md)
+[What is a Queuing System](queue-system.md)

@@ -1,8 +1,8 @@
-# モックレスポンスの利用（高速起動）
+# Using Mock Responses (Fast Startup)
 
-モックレスポンスを使用すると読み込みに時間のかかる事前学習済言語モデルのかわりに、ダミーの文章を生成させることができます
+Using mock responses allows you to generate dummy sentences instead of loading time-consuming pre-trained language models.
 
-## 使用方法
+## Usage
 
 ```python
 chat_stream = ChatStream(
@@ -12,22 +12,18 @@ chat_stream = ChatStream(
 )
 ```
 
-ChatStream クラスのコンストラクタ引数
+Constructor arguments for the ChatStream class:
 
-- **use_mock_response** ... True モックレスポンスを有効にする。  
-- **mock_params** ... モックレスポンスの生成ルールを指定する  
-- **chat_prompt_clazz** ... プロンプト履歴管理クラス  
+- **use_mock_response** ... Enable mock responses by setting this to True.
+- **mock_params** ... Specifies the generation rules for mock responses.
+- **chat_prompt_clazz** ... Class for managing prompt history.
 
-**mock_params** パラメータ
+**mock_params** parameters:
 
-|パラメータ名|パラメータ値|説明|
+|Parameter|Parameter Value|Description|
 |:----|:----|:----|
-|type|round|100ワード程度のダミー文章をラウンドロビン方式で生成する|
-| |long|長文のダミー文章を生成する|
-| |echo|ユーザーが入力した文字列をそのまま返す|
-|initial_wait_sec|数値(秒)|文章生成開始までの待ち時間を 秒 で指定する|
-|time_per_token_sec|数値(秒)|１トークンあたりの生成時間。|
-
-
-
-
+|type|round|Generates dummy sentences of about 100 words in a round-robin manner.|
+| |long|Generates long dummy sentences.|
+| |echo|Returns the string input by the user as is.|
+|initial_wait_sec|Number (seconds)|Specifies the waiting time in seconds before sentence generation starts.|
+|time_per_token_sec|Number (seconds)|Time to generate per token.|

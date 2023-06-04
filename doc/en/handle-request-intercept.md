@@ -1,8 +1,6 @@
-# メッセージインターセプト
+# Message Interception
 
-FastAPI/Starlette を利用している場合、エンドポイントで `await request.body()` や `await request.json()` を実行すると、
-リクエストストリームを消費(consume)してしまうため、 ChatStream にリクエストを委譲する前にリクエストをインターセプトをする場合は以下のように実装します
-
+When using FastAPI/Starlette, if you execute `await request.body()` or `await request.json()` in the endpoint, it consumes the request stream. Therefore, if you want to intercept the request before delegating it to ChatStream, implement it as follows:
 
 ```python
 import json
@@ -11,7 +9,7 @@ from fastapi import FastAPI, Request
 @app.post("/chat_stream")
 async def stream_api(request: Request):
 
-    # Request を インターセプトする場合
+    # When intercepting the Request
     request_body = await request.body()
     data = json.loads(request_body)
     
@@ -20,11 +18,9 @@ async def stream_api(request: Request):
 
     print(f"user_input:{user_input} regenerate:{regenerate}")
     
-    # インターセプトした場合は `request_body` を指定する
+    # If you intercept, specify `request_body`
     response = await chat_stream.handle_starlette_request(request, request_body)
 
     return response
-
 ```
 
- 

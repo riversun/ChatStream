@@ -1,3 +1,3 @@
-# カスタムリクエストハンドラの実装
+# Implement a custom request handler
 
 **coming soon**

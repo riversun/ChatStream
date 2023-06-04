@@ -1,13 +1,12 @@
-# 時間のかかるモデル読み込みにプログレスバーをつける
+# Adding a Progress Bar to Model Loading Time
 
-モデルの読み込みは処理時間が不明ですが、読み込み時にプログレスバーを表示することができます。
+The model loading time is uncertain, but a progress bar can be displayed during loading.
 
-1回目の実行時は処理時間を計測しておき、2回目、また同じ処理が呼ばれたときはプログレスバーを表示します。
+The first time the process is run, the processing time is measured. The second time, or when the same process is called again, a progress bar is displayed.
 
 <img src="https://riversun.github.io/loadtime/loadtime_std.gif">
 
-モデルの読み込みを `LoadTime` でラップするだけで、プログレスバーつきで読み込むことができます
-
+Just by wrapping the model loading with `LoadTime`, you can load with a progress bar.
 
 **Before** 
 
@@ -27,7 +26,7 @@ model = LoadTime(name=model_path,
                  fn=lambda: AutoModelForCausalLM.from_pretrained(model_path, torch_dtype=torch.float16))()
 ```
 
-**モデル読み込みソースコード全体**
+**Complete Model Loading Source Code**
 
 ```python
 import torch
@@ -39,7 +38,5 @@ model_path = "togethercomputer/RedPajama-INCITE-Chat-3B-v1"
 model = LoadTime(name=model_path,
                  fn=lambda: AutoModelForCausalLM.from_pretrained(model_path, torch_dtype=torch.float16))()
 
-tokenizer = AutoTokenizer.from_pretrained(model_path) # tokenizerはモデル読み込みの後で取得します
-
+tokenizer = AutoTokenizer.from_pretrained(model_path) # The tokenizer is obtained after model loading
 ```
-

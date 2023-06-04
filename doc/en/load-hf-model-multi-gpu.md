@@ -1,14 +1,12 @@
-# マルチGPUに対応したモデルの読み込み
+# Loading Models Compatible with Multi-GPU
 
-モデルのパラメータ数が巨大な場合1枚のGPUに乗り切らない場合があります
+In cases where the number of parameters in a model is so large that it doesn't fit on a single GPU, you can load the model across multiple GPUs if your server has them. 
 
-サーバー内に複数枚のGPUがある場合は以下 `load_hf_model` 関数をつかい `num_gpus=2` のように複数の GPU を使用してモデルを読み込むことができます。
+To do this, you can use the `load_hf_model` function below and specify multiple GPUs for use, such as `num_gpus=2`.
 
-このとき、サーバー内にGPU数が4枚あり、`num_gpus=2` が指定された場合、GPU ID が若い順から 2枚が使用されます。
+In this case, if there are 4 GPUs on the server and `num_gpus=2` is specified, the 2 GPUs with the lowest GPU IDs are used.
 
-また、GPUの搭載メモリ量が異なる場合は `max_gpu_memory` を指定して、もっとも少ないメモリ量にあわせるか、 `max_gpu_memory` を指定しないで、
-各 GPU のメモリ量に応じた量を順に割り当てていきます。このときは、`"device_map": "sequential"` が指定されます。
-
+Also, if the GPUs have different memory capacities, you can either match the smallest memory size by specifying `max_gpu_memory`, or not specify `max_gpu_memory` and allocate according to the memory size of each GPU. In this case, `"device_map": "sequential"` is specified.
 
 ```python
 import torch
@@ -82,7 +80,9 @@ def get_available_gpu_memory_list(max_gpus=None):
         with torch.cuda.device(gpu_id):
             device = torch.cuda.current_device()
             gpu_properties = torch.cuda.get_device_properties(device)
-            total_memory = gpu_properties.total_memory / (1024 ** 3)
+            total_memory = gpu_properties.total_memory / (1024 **
+
+ 3)
             allocated_memory = torch.cuda.memory_allocated() / (1024 ** 3)
             available_memory = total_memory - allocated_memory
             gpu_memory_list.append(available_memory)

@@ -1,12 +1,10 @@
-# セッションミドルウェア
+# Session Middleware
 
-開いたブラウザでWebチャットをするときにマルチラウンドの会話を成立するためには
-ChatPrompt（会話履歴） が複数ターンの会話のなかで更新されていく必要があります。
+In order to sustain multi-round conversations when conducting web chats with an open browser, the ChatPrompt (conversation history) needs to be updated throughout the multiple turns of conversation.
 
-デフォルトでは、 ChatStream は HTTP セッションを使用してWebアプリケーションをステートフルにし、
-ChatPrompt をブラウザが開いている間保持することができます。
+By default, ChatStream uses HTTP sessions to make the web application stateful, enabling it to retain the ChatPrompt as long as the browser is open.
 
-HTTP セッションを使用するには、以下のように FastAPI のミドルウェアを登録します。
+To use HTTP sessions, register FastAPI's middleware as follows:
 
 ```python
 from fastsession import FastSessionMiddleware, MemoryStore
@@ -18,27 +16,27 @@ app.add_middleware(FastSessionMiddleware,
                    )
 ```
 
-|パラメータ名|説明|
+|Parameter|Description|
 |:----|:----|
-|secret_key|クッキーの署名用キー。|
-|store|セッションの保存用ストア。|
-|http_only|クッキーがクライアントサイドのスクリプト（JavaScriptなど）からアクセスできないようにするか。デフォルトはTrue。|
-|secure|ローカル開発環境のためにFalse。本番環境ではTrue。Httpsが必要。|
+|secret_key|Key for signing cookies.|
+|store|Store for saving sessions.|
+|http_only|Determines whether the cookie cannot be accessed from client-side scripts (such as JavaScript). The default is True.|
+|secure|False for local development environment. True for production environment. HTTPS is required.|
 
-## 内部処理
+## Internal Process
 
-このデフォルトの実装では、セッションID を生成し署名をほどこしたのち、クッキーに保存します。
+In this default implementation, it generates a session ID, applies a signature to it, and then saves it in a cookie.
 
-クッキーの保存期間はブラウザが開いている間のみで、かつ、フロントエンドのJavaScript からアクセスできない状態となっています
+The cookie's storage period is only while the browser is open, and it's inaccessible from frontend JavaScript.
 
-# 会話履歴を永続化するその他の方法
+# Other Ways to Persist Conversation History
 
-デフォルトの実装では ChatPrompt はセッション上に存在します。 またセッション情報はサーバー側でオンメモリで管理され、セッションの持続期間はブラウザが開いている間でした。
+In the default implementation, the ChatPrompt exists in the session. The session information is managed in memory on the server side, and the session's duration is while the browser is open.
 
-本格的なチャットサーバーを構築する場合は、ユーザーを認証し、ユーザーにひもづいた ChatPrompt をデータベース上に保存（永続化）するのが一般的です。
+When constructing a full-fledged chat server, it is common to authenticate users and save ChatPrompts tied to users in a database (persist).
 
-このような処理を行うためには、[カスタムリクエストハンドラの実装](request-handler-how-to.md)　を行い、リクエストハンドラ上で、 ChatPrompt の管理と、永続化を行うことができます。
+To carry out such processing, you can implement a [custom request handler](request-handler-how-to.md) and manage and persist the ChatPrompt on the request handler.
 
-## 関連：CORS ミドルウェア
+## Related: CORS Middleware
 
-[CORS ミドルウェア](middleware-cors.md)
+[CORS Middleware](middleware-cors.md)

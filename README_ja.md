@@ -83,15 +83,15 @@ async def startup():
 - [プロンプトクラス ChatPrompt のインポート](doc/ja/chat-prompt.md)
 - [モデルクラスの読み込み](doc/ja/load-hf-model.md)
 - [HTTP セッションミドルウェアの設定](doc/ja/middleware-session.md)
-- [ChatStream の生成と初期化](doc/ja/chatstream-initialize.md)
+- [ - ChatStream の生成と初期化](doc/ja/chatstream-initialize.md)
 
 
 
 - Web API エンドポイントの実装
-  - [エンドポイントの実装](doc/ja/handle-request.md)
+  - [- エンドポイントの実装](doc/ja/handle-request.md)
   - [ストリーミング送信完了のコールバックを受け取る](doc/ja/handle-request-finish-callback.md)
   - [ユーザーからのリクエストの読み取り](doc/ja/handle-request-intercept.md)
-  - [HTTP セッションの設定方法](doc/ja/handle-request-session.md)
+  - [ - HTTP セッションの設定方法](doc/ja/handle-request-session.md)
 
 
 - キューイングシステムと同時処理制限

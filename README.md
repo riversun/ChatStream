@@ -80,18 +80,18 @@ async def startup():.
 ## Table of Contents
 
 - [What is ChatStream](doc/en/features.md)
-- [ -- Importing Prompt Class ChatPrompt](doc/en/chat-prompt.md)
-- [ -- Loading model classes](doc/en/load-hf-model.md)
+- [ - Importing Prompt Class ChatPrompt](doc/en/chat-prompt.md)
+- [ - Loading model classes](doc/en/load-hf-model.md)
 - [ -- HTTP session middleware configuration](doc/en/middleware-session.md)
-- [ -- Create and initialize ChatStream](doc/en/chatstream-initialize.md)
+- [ - Create and initialize ChatStream](doc/en/chatstream-initialize.md)
 
 
 
 - Implementation of Web API Endpoints
-  - [ -- Endpoint Implementation](doc/en/handle-request.md)
+  - [ - Endpoint Implementation](doc/en/handle-request.md)
   - [ -- Receive streaming transmission completion callback](doc/en/handle-request-finish-callback.md)
   - [ -- Read requests from users](doc/en/handle-request-intercept.md)
-  - [ -- How to set up an HTTP session](doc/en/handle-request-session.md)
+  - [ - How to set up an HTTP session](doc/en/handle-request-session.md)
 
 
 - Queueing System and Concurrency Limit
@@ -114,7 +114,7 @@ async def startup():.
   - [ -- Using Mock Response (Fast Startup)](doc/en/mock_response.md)
   - [ -- Logging Settings](doc/en/logging.md)
   - [ -- Reading requests from users](doc/en/handle-request-intercept.md)
-  - [ -- Attach progress bar to time-consuming model loading](doc/en/load-model-with-pbar.md)
+  - [ - Attach progress bar to time-consuming model loading](doc/en/load-model-with-pbar.md)
 
 
 - Advanced Settings

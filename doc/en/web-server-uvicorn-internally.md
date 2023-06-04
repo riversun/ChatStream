@@ -1,9 +1,8 @@
-# uvicorn(内部起動)
+# uvicorn (Internal Launch)
 
-ChatStreamは FastAPI/Starlette に対応しているため、 ASGI サーバーで動作させることができます。
+ChatStream is compatible with FastAPI/Starlette, so it can be run on an ASGI server.
 
-
-uvicorn をコード内で定義するには以下のように実装します
+To define uvicorn within the code, implement as follows:
 
 ```python
 def start_server():
@@ -19,7 +18,7 @@ if __name__ == "__main__":
 
 ```
 
-**ソースコード全体**
+**Full Source Code**
 
 ```python
 import torch

@@ -1,6 +1,6 @@
-# ロギングの設定
+# Configure logging
 
-ChatStream のロギングを設定するには以下のようにします
+To configure logging for ChatStream, do the following
 
 ```python
 import logging

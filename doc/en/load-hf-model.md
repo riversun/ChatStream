@@ -1,6 +1,6 @@
-# HuggingFace モデルのロード
+# Loading HuggingFace Models
 
-モデルごとに指定された方法で HuggingFace モデルを読み込みます
+Load the HuggingFace model using the method specified for each model.
 
 ```python
 model_path = "togethercomputer/RedPajama-INCITE-Chat-3B-v1"
@@ -11,4 +11,4 @@ model = AutoModelForCausalLM.from_pretrained(model_path, torch_dtype=torch.float
 model.to(device)
 ```
 
-マルチGPUの場合は [マルチGPUに対応したモデルの読み込み](load-hf-model-multi-gpu.md) に示す方法をつかうことができます
+For multi-GPU setups, you can use the method described in [Loading Models Compatible with Multi-GPU](load-hf-model-multi-gpu.md).
