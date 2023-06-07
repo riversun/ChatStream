@@ -2,11 +2,14 @@ from typing import Generator
 
 from .chat_prompt import AbstractChatPrompt
 from .chat_core import process_chat
+from .merge_dic import merge_dict
 import asyncio
 
 from tokflow import TokFlow
 
 UPDATE_RESPONDER_TOKEN_ONE_BY_ONE = True
+condition_for_updated_text = {"in_type": "spot", "out_type": "spot"}
+condition_for_response_text = {"in_type": "full", "out_type": "full"}
 
 
 class ChatGenerator:
@@ -16,19 +19,19 @@ class ChatGenerator:
         self.device = device
         self.params = params
 
-        self.tflow_for_updated_text = None
-        self.tflow_for_response_text = None
+        # self.tflow_for_updated_text = None
+        # self.tflow_for_response_text = None
 
     async def generate(self, chat_prompt: AbstractChatPrompt, opts: dict = {}) -> Generator:
         """
         chat_prompt として入力された会話履歴データをもとに、 L{process_chat} に文章生成を指示し
-        逐次生成された文章から以下3点を
+        逐次生成された文章から以下3点をデータ化し、それをyield する generator としてふるまう。
         
         1. 生成済文章全体(response_text)
         2. 新規生成(updated_text)
         3. 現在のトークン位置
         
-        データ化し、それをyield する generator としてふるまう。
+
         
         :param chat_prompt: 会話履歴を含む ChatPrompt オブジェクト
         :param opts: 
@@ -48,9 +51,10 @@ class ChatGenerator:
 
         output_replacement = chat_prompt.get_replacement_when_output()  # 出力の置換
 
-        if output_replacement is not None and self.tflow_for_updated_text is None:
-            self.tflow_for_updated_text = TokFlow(output_replacement)
-            self.tflow_for_response_text = TokFlow(output_replacement)
+        # if output_replacement is not None and self.tflow_for_updated_text is None:
+        if output_replacement is not None:
+            tflow_for_updated_text = TokFlow(output_replacement)
+            tflow_for_response_text = TokFlow(output_replacement)
 
         prompt = chat_prompt.create_prompt()  # これまでの会話履歴を含んだプロンプトを生成する
 
@@ -64,9 +68,13 @@ class ChatGenerator:
 
         self.params["stop_strs"] = stop_strs
 
+        # ユーザーごとに生成パラメータ(temparatureや top_k,top_p など　を変更したい場合)
+        generation_params = opts.get("generation_params", {})
+        process_params = merge_dict(self.params, generation_params)
+
         # process_chat() は async 関数で、非同期ジェネレータを返す
         # 非同期ジェネレータを使用する場合は async for を用いて結果を順次取得するため、以下呼出しでの await は不要となる。
-        async_generator = process_chat(self.model, self.tokenizer, self.device, self.params, prompt)
+        async_generator = process_chat(self.model, self.tokenizer, self.device, process_params, prompt)
 
         prev = ""
 
@@ -115,15 +123,15 @@ class ChatGenerator:
 
             updated_text = response_text[len(prev):]
 
-            updated_text_to_disp=updated_text
-            response_text_to_disp=response_text
+            updated_text_to_disp = updated_text
+            response_text_to_disp = response_text
 
             # tokflow 処理が必要な場合はバッファリングしたものをセットする
-            if self.tflow_for_updated_text is not None:
-                updated_text_to_disp = self.tflow_for_updated_text.put(updated_text)
+            if tflow_for_updated_text is not None:
+                updated_text_to_disp = tflow_for_updated_text.put(updated_text, condition_for_updated_text)
 
-            if self.tflow_for_response_text is not None:
-                response_text_to_disp = self.tflow_for_response_text.put(response_text)
+            if tflow_for_response_text is not None:
+                response_text_to_disp = tflow_for_response_text.put(response_text, condition_for_response_text)
 
             if otype == "updated_text":
                 yield updated_text_to_disp
@@ -152,16 +160,15 @@ class ChatGenerator:
 
         pos = "end"
 
-
-        if self.tflow_for_updated_text is not None:
+        if tflow_for_updated_text is not None:
             # tokflow 内に未出力のバッファが存在する可能性があるため flush する
-            updated_text_to_disp = self.tflow_for_updated_text.flush()
+            updated_text_to_disp = tflow_for_updated_text.flush(condition_for_updated_text)
         else:
             updated_text_to_disp = updated_text
 
-        if self.tflow_for_response_text is not None:
+        if tflow_for_response_text is not None:
             # tokflow 内に未出力のバッファが存在する可能性があるため flush する
-            response_text_to_disp = self.tflow_for_response_text.flush()
+            response_text_to_disp = tflow_for_response_text.flush(condition_for_response_text)
         else:
             response_text_to_disp = response_text
 
