@@ -130,7 +130,9 @@ class SimpleSessionRequestHandler(AbstractRequestHandler):
                 # このコールバックは実際は上位の キューイングループ
                 await streaming_finished_callback(request, message)
 
-            generator = self.generate(chat_prompt, chat_generation_finished_callback, request)
+
+            custom_generation_params = session.get("generation_params",None)
+            generator = self.generate(chat_prompt, chat_generation_finished_callback, request,custom_generation_params)
 
             streaming_response = StreamingResponse(generator, media_type="text/plain")
 
