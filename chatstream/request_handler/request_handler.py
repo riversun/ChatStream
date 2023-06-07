@@ -31,7 +31,7 @@ class AbstractRequestHandler(ABC):
         self.chat_prompt_clazz = None
         self.logger = None
 
-    async def generate(self, chat_prompt, chat_generation_finished_callback,request):
+    async def generate(self, chat_prompt, chat_generation_finished_callback, request, custom_generation_params):
         f"""
         事前学習済言語モデルから逐次生成されたトークンを送出する非同期ジェネレーターを返す
         
@@ -55,7 +55,10 @@ class AbstractRequestHandler(ABC):
         try:
             async for tok in self.chat_generator.generate(chat_prompt,
                                                           {"output_type": "response_text",
-                                                           "post_process_callback": chat_generation_finished_callback
+                                                           "post_process_callback": chat_generation_finished_callback,
+                                                           # 個々に設定できる生成パラメータ
+                                                           "generation_params": custom_generation_params,
+
                                                            }):
                 yield tok
         except asyncio.CancelledError:
