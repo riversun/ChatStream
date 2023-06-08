@@ -62,7 +62,8 @@ def get_resource_usage(opts={}):
             total = mem_get_info[1] / (1024 ** 3)
             unused = mem_get_info[0] / (1024 ** 3)
             used = total - unused
-            print(f"gpu{i} total:{total:.2f}GB used:{used:.2f}GB unused:{unused:.2f}GB")
+            ret["gpus"].append({"index": i, "total_memory": round(total, 2), "used_memory": round(used, 2)})
+
 
     return ret
 
