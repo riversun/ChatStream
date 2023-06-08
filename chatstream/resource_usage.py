@@ -3,9 +3,9 @@ import psutil
 import torch
 
 
-def get_memory_usage(opts={}):
+def get_resource_usage(opts={}):
     """
-    メモリ使用状況を取得する。
+    リソース使用状況を取得する。
 
     Parameters:
     opts (dict): オプション情報を持つ辞書。"num_gpus"と"device"をキーとして含む。
@@ -68,5 +68,5 @@ def get_memory_usage(opts={}):
 
 
 if False:
-    ret = get_memory_usage({"num_gpus": 1, "device": torch.device('cuda')})
+    ret = get_resource_usage({"num_gpus": 1, "device": torch.device('cuda')})
     print(ret)
