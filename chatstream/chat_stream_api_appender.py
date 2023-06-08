@@ -94,11 +94,20 @@ def append_apis(chat_stream, app, opts,logger):
             APIRoute(path=DefaultApiPaths.SET_GENERATION_PARAMS, endpoint=set_generation_params_api,
                      methods=["POST"]))
 
+
+        async def get_generation_params_api(request: Request):
+            return await chat_stream.handle_get_generation_params_request(request)
+
+        app.router.routes.append(
+            APIRoute(path=DefaultApiPaths.GET_GENERATION_PARAMS, endpoint=get_generation_params_api,
+                     methods=["GET"]))
+
         if chat_stream.allow_set_generation_params:
             logger.debug(f"APIエンドポイント '{DefaultApiPaths.SET_GENERATION_PARAMS}' を追加しました")
+            logger.debug(f"APIエンドポイント '{DefaultApiPaths.GET_GENERATION_PARAMS}' を追加しました")
         else:
             logger.warning(
-                f"APIエンドポイント '{DefaultApiPaths.SET_GENERATION_PARAMS}' を追加しましたが、このAPIは無効です。有効にするには、allow_set_generation_params=True で ChatStream を初期化する必要があります")
+                f"APIエンドポイント '{DefaultApiPaths.SET_GENERATION_PARAMS}' および '{DefaultApiPaths.GET_GENERATION_PARAMS}' を追加しましたが、このAPIは無効です。有効にするには、allow_set_generation_params=True で ChatStream を初期化する必要があります")
 
     if is_enabled("get_resource_usage"):
         async def get_resource_usage_api(request: Request):
