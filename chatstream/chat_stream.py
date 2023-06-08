@@ -25,7 +25,7 @@ from .util_resource_file_response import _send_resource
 
 class ChatStream:
     def __init__(self,
-                 name="chatstream",
+                 name="node:0",
                  model=None,  # Pre-trained language model in HuggingFace style
                  tokenizer=None,  # HuggingFace style tokenizer
                  num_gpus=None,
@@ -335,9 +335,11 @@ class ChatStream:
             if self.allow_get_resource_usage is not True:
                 return JSONResponse(status_code=403, content={"success": False, "message": "Forbidden"})
 
-            ret = get_resource_usage({"num_gpus": self.num_gpus, "device": self.device})
+            memory_usage = get_resource_usage({"num_gpus": self.num_gpus, "device": self.device})
 
-            return {"success": True, "message": "success", "memory_usage": ret}
+            memory_usage["name"] = self.name;
+
+            return {"success": True, "message": "success", "memory_usage": [memory_usage]}
 
 
         except Exception as e:
@@ -490,7 +492,7 @@ class ChatStream:
                 chat_prompt = session.get("chat_prompt")
                 if chat_prompt is None:
                     self.logger.debug(f"プロンプトを取得しようとしましたが、プロンプトはまだセットされていません")
-                    return {"success": False, "message": "no prompt", "prompt": None}
+                    return {"success": True, "message": "no prompt", "prompt": None}
 
                 str_prompt = chat_prompt.create_prompt()
                 str_prompt_encoded = urllib.parse.quote(str_prompt)
