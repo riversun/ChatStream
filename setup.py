@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="chatstream",
-    version="0.2.0",
+    version="0.3.0",
     author="Tom Misawa",
     author_email="riversun.org@gmail.com",
     description="A streaming chat toolkit for pre-trained large language models(LLM)",
