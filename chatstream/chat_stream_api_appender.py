@@ -116,7 +116,7 @@ def append_apis(chat_stream, app, opts,logger):
     if is_enabled("web_ui"):
         ui_init_params = opts.get("web_ui_params", {})
 
-        def js(response: Response):
+        async def js(response: Response):
             return chat_stream.js(response)
 
         app.router.routes.append(APIRoute(path=DefaultApiPaths.JS, endpoint=js, methods=["GET"]))
@@ -127,7 +127,7 @@ def append_apis(chat_stream, app, opts,logger):
             logger.warning(
                 f"APIエンドポイント '{DefaultApiPaths.JS}' を追加しましたが、このAPIは無効です。有効にするには、allow_web_ui=True で ChatStream を初期化する必要があります")
 
-        def index(request: Request, response: Response):
+        async def index(request: Request, response: Response):
             return chat_stream.index(response, opts={"ui_init_params": ui_init_params})
 
         app.router.routes.append(APIRoute(path=DefaultApiPaths.INDEX, endpoint=index, methods=["GET"]))
