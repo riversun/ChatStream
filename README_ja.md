@@ -65,8 +65,8 @@ app.add_middleware(FastSessionMiddleware,
 
 @app.post("/chat_stream")
 async def stream_api(request: Request):
-    # FastAPI の Request オブジェクトを `handle_starlette_request` に渡すだけで自動的にキューイング、同時実行制御します
-    response = await chat_stream.handle_starlette_request(request)
+    # FastAPI の Request オブジェクトを `handle_chat_stream_request` に渡すだけで自動的にキューイング、同時実行制御します
+    response = await chat_stream.handle_chat_stream_request(request)
     return response
 
 

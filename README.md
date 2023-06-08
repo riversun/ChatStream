@@ -34,18 +34,18 @@ from fastapi import FastAPI, Request
 from fastsession import FastSessionMiddleware, MemoryStore
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
-from chatstream import ChatStream,ChatPromptTogetherRedPajamaINCITEChat as ChatPrompt
+from chatstream import ChatStream, ChatPromptTogetherRedPajamaINCITEChat as ChatPrompt
 
 model_path = "togethercomputer/RedPajama-INCITE-Chat-3B-v1"
-device = "cuda" # "cuda" / "cpu"
+device = "cuda"  # "cuda" / "cpu"
 
 tokenizer = AutoTokenizer.from_pretrained(model_path)
 model = AutoModelForCausalLM.from_pretrained(model_path, torch_dtype=torch.float16)
 model.to(device)
 
 chat_stream = ChatStream(
-    num_of_concurrent_executions=2,# max_concurrent_executions for sentence generation
-    max_queue_size=5,# size of queue
+    num_of_concurrent_executions=2,  # max_concurrent_executions for sentence generation
+    max_queue_size=5,  # size of queue
     model=model,
     tokenizer=tokenizer,
     device=device,
@@ -64,14 +64,14 @@ app.add_middleware(FastSessionMiddleware,
 
 
 @app.post("/chat_stream")
-async def stream_api(request: Request):.
-    # Just pass a FastAPI Request object to `handle_starlette_request` to automatically queue and control concurrency
-    response = await chat_stream.handle_starlette_request(request)
+async def stream_api(request: Request):
+    # Just pass a FastAPI Request object to `handle_chat_stream_request` to automatically queue and control concurrency
+    response = await chat_stream.handle_chat_stream_request(request)
     return response
 
 
 @app.on_event("startup")
-async def startup():.
+async def startup():
     # start the queueing system by doing `start_queue_worker` at the same time the web server starts up
     await chat_stream.start_queue_worker()
 

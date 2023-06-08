@@ -21,7 +21,7 @@ async def stream_api(request: Request):
     print(f"user_input:{user_input} regenerate:{regenerate}")
     
     # インターセプトした場合は `request_body` を指定する
-    response = await chat_stream.handle_starlette_request(request, request_body)
+    response = await chat_stream.handle_chat_stream_request(request, request_body)
 
     return response
 

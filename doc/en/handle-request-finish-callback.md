@@ -2,7 +2,7 @@
 
 In ChatStream, because we perform a streaming response, the timing of `return response` in the endpoint does not signify the completion of text generation.
 
-Therefore, if you want to catch the timing of the completion of text generation, specify a callback function in the argument `callback` of `handle_starlette_request` in the implementation of the endpoint.
+Therefore, if you want to catch the timing of the completion of text generation, specify a callback function in the argument `callback` of `handle_chat_stream_request` in the implementation of the endpoint.
 
 When the text generation is completed, the specified callback function will be called.
 
@@ -21,7 +21,7 @@ async def stream_api(request: Request):
 
     pass
 
-    response = await chat_stream.handle_starlette_request(request, callback=callback_func)
+    response = await chat_stream.handle_chat_stream_request(request, callback=callback_func)
 
     return response
 ```

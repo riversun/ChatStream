@@ -3,7 +3,7 @@
 ChatStream では、ストリーミングレスポンスを行うため、エンドポイントで `return reponse` を行ったタイミングが文章生成処理の終了ではありません。
 
 そこで、文章生成の完了のタイミングをキャッチしたい場合、
-エンドポイントの実装で、 `handle_starlette_request` の引数 `callback` にコールバック関数を指定します。
+エンドポイントの実装で、 `handle_chat_stream_request` の引数 `callback` にコールバック関数を指定します。
 
 文章生成が完了すると、指定したコールバック関数が呼び出されます
 
@@ -22,7 +22,7 @@ async def stream_api(request: Request):
 
     pass
 
-    response = await chat_stream.handle_starlette_request(request, callback=callback_func)
+    response = await chat_stream.handle_chat_stream_request(request, callback=callback_func)
 
     return response
 ```

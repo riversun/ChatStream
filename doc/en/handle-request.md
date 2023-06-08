@@ -1,6 +1,6 @@
 # Implementation of the Endpoint
 
-To create a web endpoint for streaming chat at the URL path `/chat_stream`, call `handle_starlette_request` as shown below.
+To create a web endpoint for streaming chat at the URL path `/chat_stream`, call `handle_chat_stream_request` as shown below.
 
 With this, the implementation of streaming chat, which controls the number of concurrent text generation requests from users, is complete.
 
@@ -8,7 +8,7 @@ With this, the implementation of streaming chat, which controls the number of co
 @app.post("/chat_stream")
 async def stream_api(request: Request):
     # handling FastAPI/Starlette's Request
-    response = await chat_stream.handle_starlette_request(request)
+    response = await chat_stream.handle_chat_stream_request(request)
     return response
 ```
 

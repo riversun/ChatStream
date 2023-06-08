@@ -1,7 +1,7 @@
 # エンドポイントの実装
 
 `/chat_stream` という URL パスに、ストリーミングチャット用のWebエンドポイントをつくるには
-以下のように `handle_starlette_request` を呼び出します。
+以下のように `handle_chat_stream_request` を呼び出します。
 
 これだけで、ユーザーからのリクエストは　文章生成の同時実行数を制御したストリーミングチャットの実装は完了です
  
@@ -9,7 +9,7 @@
 @app.post("/chat_stream")
 async def stream_api(request: Request):
     # handling FastAPI/Starlette's Request
-    response = await chat_stream.handle_starlette_request(request)
+    response = await chat_stream.handle_chat_stream_request(request)
     return response
 ```
 
