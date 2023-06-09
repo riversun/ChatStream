@@ -390,11 +390,17 @@ class ChatStream:
             if self.allow_set_generation_params is not True:
                 return JSONResponse(status_code=403, content={"success": False, "message": "Forbidden"})
 
-            generation_params = await request.json()
+            generation_params_from_client = await request.json()
 
-            temperature = generation_params.get("temperature")
-            top_k_value = generation_params.get("top_k_value")
-            top_p_value = generation_params.get("top_p_value")
+            temperature = generation_params_from_client.get("temperature")
+            top_k_value = generation_params_from_client.get("top_k_value")
+            top_p_value = generation_params_from_client.get("top_p_value")
+
+            user_specified_generation_params = {
+                "temperature": temperature,
+                "top_k_value": top_k_value,
+                "top_p_value": top_p_value
+            }
 
             if temperature is not None and not (0.0 <= temperature <= 1.0):
                 error_message = "Invalid temperature value. Temperature should be between 0.0 and 1.0."
@@ -413,19 +419,22 @@ class ChatStream:
             if session_mgr:
                 # セッションオブジェクト（辞書オブジェクト）を取得する
                 session = session_mgr.get_session()
-                # TODO value validation
 
-                # ユーザーが指定した生成パラメータをセッションに保存
-                session["generation_params"] = generation_params;
 
-                # デフォルトの生成パラメータ
+                # ユーザーが設定した生成パラメータをセッションに保存
+                session["generation_params"] = user_specified_generation_params;
+
+                # TODO セッション永続化(必要あれば)
+
+
+                # デフォルト(ChatStream初期化時に指定された)の生成パラメータ
                 crr_params = {
                     "temperature": self.params.get("temperature"),
-                    "top_k": self.params.get("top_k_value"),
-                    "top_p": self.params.get("top_p_value"),
+                    "top_k_value": self.params.get("top_k_value"),
+                    "top_p_value": self.params.get("top_p_value"),
                 }
 
-                merged_params = merge_dict(crr_params, generation_params)
+                merged_params = merge_dict(crr_params, user_specified_generation_params)
 
                 return {
                     "success": True, "message": "success",
@@ -455,15 +464,16 @@ class ChatStream:
                 # TODO value validation
 
                 # ユーザーが指定した生成パラメータをセッションに保存
-                generation_params = session.get("generation_params", {});
+                session_stored_generation_params = session.get("generation_params", {});
 
                 # デフォルトの生成パラメータ
                 crr_params = {
                     "temperature": self.params.get("temperature"),
-                    "top_k": self.params.get("top_k_value"),
-                    "top_p": self.params.get("top_p_value"),
+                    "top_k_value": self.params.get("top_k_value"),
+                    "top_p_value": self.params.get("top_p_value"),
                 }
-                merged_params = merge_dict(crr_params, generation_params)
+                # ChatStream 初期化時に指定された生成パラメータに、現在セッションで保持されているユーザーごとの生成パラメータをマージしたものを返す
+                merged_params = merge_dict(crr_params, session_stored_generation_params)
 
                 return {
                     "success": True, "message": "success",
@@ -524,7 +534,9 @@ class ChatStream:
                     "processing": self.processing_queue.qsize(),
                     "waiting": self.run_on_next_queue.qsize() + self.request_queue.qsize(),
                     "_num_of_next_queue": self.run_on_next_queue.qsize(),
-                    "_num_of_request_queue": self.request_queue.qsize()
+                    "_num_of_request_queue": self.request_queue.qsize(),
+                    "max_processing": self.processing_queue.maxsize,
+                    "max_waiting": self.request_queue.maxsize + self.run_on_next_queue.maxsize
                 },
             ],
         }
