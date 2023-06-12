@@ -1,30 +1,23 @@
 def merge_dict(src_dict, dest_dict):
     """
-    dictSrc に dictDest にある各パラメータを上書きする
-    ただし dictDest にあるパラメータ値が None の場合は反映しない
+    Overwrites parameters of `src_dict` with those in `dest_dict`.
+    However, if the value of the parameter in `dest_dict` is None, it is not reflected.
 
-    :param src_dict:
-    :param dest_dict:
-    :return:
+    :param src_dict: The original dictionary.
+    :param dest_dict: The dictionary whose values will be used to overwrite the original.
+    :return: A new dictionary that results from merging the two input dictionaries.
     """
 
-    dictSrcCopy = src_dict.copy()
-    # dictSrc に、 dictDest を上書きする。
-    # ただし、 dictDest のキーに対する値が None なら上書きしない
-    # None の場合はセットしない
+    src_dict_copy = src_dict.copy()
+
     if dest_dict is not None:
         for key, value in dest_dict.items():
-            if key in dictSrcCopy and value is not None:
-                dictSrcCopy[key] = value
+            if key in src_dict_copy and value is not None:
+                src_dict_copy[key] = value
             elif value is not None:
-                dictSrcCopy[key] = value
+                src_dict_copy[key] = value
 
     else:
         return src_dict
 
-    return dictSrcCopy
-
-
-if False:
-    r = merge_dict({"a": "val_a", "b": "val_b"}, {"a": "val_a_dash", "b": None, "c": "val_c"})
-    print(r)
+    return src_dict_copy
