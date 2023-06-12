@@ -26,23 +26,17 @@ from .easy_locale import EasyLocale
 
 class ChatStream:
     def __init__(self,
-                 name="node:0",
+                 name="node:0",  # Name of this ChatStream instance. The name should be recognizable even if it is distributed across multiple instances.
                  model=None,  # Pre-trained language model in HuggingFace style
                  tokenizer=None,  # HuggingFace style tokenizer
-                 num_gpus=None,
+                 num_gpus=None,  # Set number of GPUs used for text generation in this ChatStream instance
                  device=None,  # Run on "cpu" / "cuda" / "mps"
-                 num_of_concurrent_executions: int = 2,
-                 # The number of simultaneous executions for sentence generation tasks in the pre-trained language model
-                 max_queue_size: int = 5,
-                 # The maximum queue size for sentence generation tasks in the pre-trained language model
-                 too_many_request_as_http_error=False,
-                 # True: When a 'Too many requests' situation occurs, it returns the status as 429
-                 use_mock_response=False,
-                 # True: Returns fixed phrases for testing. As it doesn't need to load the model, it starts up immediately
-                 mock_params={type: "round"},
-                 # "round" / "long" - The type of phrases to return when use_mock_response=True
-                 chat_prompt_clazz=None,
-                 # Specifies the class that manages the prompts sent to the language model. Inherit from AbstractChatPrompt and implement a class that generates chat prompts according to the etiquette of each model
+                 num_of_concurrent_executions: int = 2,  # The number of concurrent executions for text generation
+                 max_queue_size: int = 5,  # The maximum queue size for text generation tasks
+                 too_many_request_as_http_error=False,  # True: When 'Too many requests' situation , it returns the status as 429
+                 use_mock_response=False,  # True: Returns fixed phrases for testing. As it doesn't need to load the model, it starts up immediately
+                 mock_params={type: "round"},  # "round" / "long" - The type of phrases to return when use_mock_response=True
+                 chat_prompt_clazz=None,  # Specifies the class that manages the prompts sent to the language model.
                  max_new_tokens=256,  # The maximum size of the newly generated tokens
                  context_len=1024,  # The size of the context (in terms of the number of tokens)
                  temperature=1.0,  # The temperature value for randomness in prediction
@@ -50,13 +44,12 @@ class ChatStream:
                  top_p=1.0,  # Value of top P for sampling
                  repetition_penalty=None,  # Penalty for repetition
                  repetition_penalty_method="multiplicative",  # Calculation method for repetition penalty
-                 # Token related processing
                  add_special_tokens=None,  # Options for the tokenizer
-                 request_handler=SimpleSessionRequestHandler(),
-                 # Request handler. By default, a handler that simply keeps the session is default
+                 request_handler=SimpleSessionRequestHandler(),  # Request handler. By default, a handler that simply keeps the session is default
+
                  logger=None,  # logging object
-                 locale=None,
-                 # Permission and denial of various functions
+                 locale=None,  # locale for logging
+
                  allow_clear_context=True,  # Allow clearing context
                  allow_get_prompt=False,  # Allow get prompt
                  allow_get_load=False,  # allow to get load information
@@ -128,7 +121,8 @@ class ChatStream:
 
         # 現在処理している リクエストタスク が最大同時処理数を超えたとき、
         # 次に実行されるリクエストタスクを一時的に配置しておく「次処理キュー」
-        # サイズを +1 している理由は 次処理キューは　現在処理中（言語モデルにより文章生成中）のものと、次に処理にまわされるものの双方格納できるスペースのため
+        # サイズを +1 している理由は 次処理キューは　現在処理中（言語モデルにより文章生成中）のものと、
+        # 次に処理にまわされるものの双方格納できるスペースのため
         self.run_on_next_queue = asyncio.Queue(maxsize=(num_of_concurrent_executions + 1))
 
         # 現在処理中(文章生成中)の リクエストタスク　が配置されている「処理中キュー」
@@ -606,8 +600,9 @@ class ChatStream:
             tb = traceback.format_exc()
             sys.stderr.write(tb)
 
-            self.logger.warning(self.eloc.to_str({"en": f"{req_id(request)} An unexpected error occurred while attempting to retrieve the context　{e}\n{traceback.format_exc()}",
-                                                  "ja": f"'{req_id(request)} コンテクストを取得しようとしたところ予期せぬエラーが発生しました　{e}\n{traceback.format_exc()}"}))
+            self.logger.warning(self.eloc.to_str({
+                "en": f"{req_id(request)} An unexpected error occurred while attempting to retrieve the context　{e}\n{traceback.format_exc()}",
+                "ja": f"'{req_id(request)} コンテクストを取得しようとしたところ予期せぬエラーが発生しました　{e}\n{traceback.format_exc()}"}))
 
             return {"success": False, "message": "error occurred"}
 
@@ -695,4 +690,4 @@ class ChatStream:
         append_apis(app, {"include": [ "exclude": ["clear_context"]})
         'clear_context' APIは自動追加しない（手動追加は可能)
         """
-        append_apis(self, app, opts, logger=self.logger,eloc=self.eloc)
+        append_apis(self, app, opts, logger=self.logger, eloc=self.eloc)
