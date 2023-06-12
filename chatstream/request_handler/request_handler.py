@@ -30,6 +30,7 @@ class AbstractRequestHandler(ABC):
         self.chat_generator = None
         self.chat_prompt_clazz = None
         self.logger = None
+        self.eloc = None
 
     async def generate(self, chat_prompt, chat_generation_finished_callback, request, custom_generation_params):
         f"""

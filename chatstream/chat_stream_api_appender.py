@@ -3,8 +3,8 @@ from fastapi.routing import APIRoute
 
 from .default_api_paths import DefaultApiPaths
 
-def append_apis(chat_stream, app, opts,logger):
 
+def append_apis(chat_stream, app, opts, logger, eloc):
     """
     ChatStreamに関連するWeb APIをFastAPIアプリに追加する。
 
@@ -46,7 +46,8 @@ def append_apis(chat_stream, app, opts,logger):
         app.router.routes.append(
             APIRoute(path=DefaultApiPaths.CHAT_STREAM, endpoint=chat_stream_api, methods=["POST"]))
 
-        logger.debug(f"APIエンドポイント '{DefaultApiPaths.CHAT_STREAM}' を追加しました")
+        logger.debug(eloc.to_str({"en": f"API endpoint '{DefaultApiPaths.CHAT_STREAM}' added.",
+                                  "ja": f"APIエンドポイント '{DefaultApiPaths.CHAT_STREAM}' を追加しました"}))
 
     if is_enabled("get_prompt"):
         async def get_prompt_api(request: Request):
@@ -56,10 +57,12 @@ def append_apis(chat_stream, app, opts,logger):
             APIRoute(path=DefaultApiPaths.GET_PROMPT, endpoint=get_prompt_api, methods=["GET"]))
 
         if chat_stream.allow_get_prompt:
-            logger.debug(f"APIエンドポイント '{DefaultApiPaths.GET_PROMPT}' を追加しました")
+            logger.debug(eloc.to_str({"en": f"API endpoint '{DefaultApiPaths.GET_PROMPT}' added.",
+                                      "ja": f"APIエンドポイント '{DefaultApiPaths.GET_PROMPT}' を追加しました"}))
         else:
-            logger.warning(
-                f"APIエンドポイント '{DefaultApiPaths.GET_PROMPT}' を追加しましたが、このAPIは無効です。有効にするには、allow_get_prompt=True で ChatStream を初期化する必要があります")
+            logger.warning(eloc.to_str({
+                                           "en": f"API endpoint '{DefaultApiPaths.GET_PROMPT}' has been added, but this API is disabled. To enable it, you must initialize ChatStream with allow_get_prompt=True",
+                                           "ja": f"APIエンドポイント '{DefaultApiPaths.GET_PROMPT}' を追加しましたが、このAPIは無効です。有効にするには、allow_get_prompt=True で ChatStream を初期化する必要があります"}))
 
     if is_enabled("clear_context"):
         async def clear_context_api(request: Request):
@@ -69,10 +72,13 @@ def append_apis(chat_stream, app, opts,logger):
             APIRoute(path=DefaultApiPaths.CLEAR_CONTEXT, endpoint=clear_context_api, methods=["POST"]))
 
         if chat_stream.allow_clear_context:
-            logger.debug(f"APIエンドポイント '{DefaultApiPaths.CLEAR_CONTEXT}' を追加しました")
+
+            logger.debug(eloc.to_str({"en": f"API endpoint '{DefaultApiPaths.CLEAR_CONTEXT}' added.",
+                                      "ja": f"APIエンドポイント '{DefaultApiPaths.CLEAR_CONTEXT}' を追加しました"}))
         else:
-            logger.warning(
-                f"APIエンドポイント '{DefaultApiPaths.CLEAR_CONTEXT}' を追加しましたが、このAPIは無効です。有効にするには、allow_clear_context=True で ChatStream を初期化する必要があります")
+            logger.warning(eloc.to_str({
+                                           "en": f"API endpoint '{DefaultApiPaths.CLEAR_CONTEXT}' has been added, but this API is disabled. To enable it, you must initialize ChatStream with allow_clear_context=True",
+                                           "ja": f"APIエンドポイント '{DefaultApiPaths.CLEAR_CONTEXT}' を追加しましたが、このAPIは無効です。有効にするには、allow_clear_context=True で ChatStream を初期化する必要があります"}))
 
     if is_enabled("get_load"):
         async def get_load_api(request: Request):
@@ -81,10 +87,12 @@ def append_apis(chat_stream, app, opts,logger):
         app.router.routes.append(APIRoute(path=DefaultApiPaths.GET_LOAD, endpoint=get_load_api, methods=["GET"]))
 
         if chat_stream.allow_get_load:
-            logger.debug(f"APIエンドポイント '{DefaultApiPaths.GET_LOAD}' を追加しました")
+            logger.debug(eloc.to_str({"en": f"API endpoint '{DefaultApiPaths.GET_LOAD}' added.",
+                                      "ja": f"APIエンドポイント '{DefaultApiPaths.GET_LOAD}' を追加しました"}))
         else:
-            logger.warning(
-                f"APIエンドポイント '{DefaultApiPaths.GET_LOAD}' を追加しましたが、このAPIは無効です。有効にするには、allow_get_load=True で ChatStream を初期化する必要があります")
+            logger.warning(eloc.to_str({
+                                           "en": f"API endpoint '{DefaultApiPaths.GET_LOAD}' has been added, but this API is disabled. To enable it, you must initialize ChatStream with allow_get_load=True",
+                                           "ja": f"APIエンドポイント '{DefaultApiPaths.GET_LOAD}' を追加しましたが、このAPIは無効です。有効にするには、allow_get_load=True で ChatStream を初期化する必要があります"}))
 
     if is_enabled("set_generation_params"):
         async def set_generation_params_api(request: Request):
@@ -94,7 +102,6 @@ def append_apis(chat_stream, app, opts,logger):
             APIRoute(path=DefaultApiPaths.SET_GENERATION_PARAMS, endpoint=set_generation_params_api,
                      methods=["POST"]))
 
-
         async def get_generation_params_api(request: Request):
             return await chat_stream.handle_get_generation_params_request(request)
 
@@ -103,11 +110,15 @@ def append_apis(chat_stream, app, opts,logger):
                      methods=["GET"]))
 
         if chat_stream.allow_set_generation_params:
-            logger.debug(f"APIエンドポイント '{DefaultApiPaths.SET_GENERATION_PARAMS}' を追加しました")
-            logger.debug(f"APIエンドポイント '{DefaultApiPaths.GET_GENERATION_PARAMS}' を追加しました")
+
+            logger.debug(eloc.to_str({"en": f"API endpoint '{DefaultApiPaths.SET_GENERATION_PARAMS}' added.",
+                                      "ja": f"APIエンドポイント '{DefaultApiPaths.SET_GENERATION_PARAMS}' を追加しました"}))
+            logger.debug(eloc.to_str({"en": f"API endpoint '{DefaultApiPaths.GET_GENERATION_PARAMS}' added.",
+                                      "ja": f"APIエンドポイント '{DefaultApiPaths.GET_GENERATION_PARAMS}' を追加しました"}))
         else:
-            logger.warning(
-                f"APIエンドポイント '{DefaultApiPaths.SET_GENERATION_PARAMS}' および '{DefaultApiPaths.GET_GENERATION_PARAMS}' を追加しましたが、このAPIは無効です。有効にするには、allow_set_generation_params=True で ChatStream を初期化する必要があります")
+            logger.warning(eloc.to_str({
+                                           "en": f"API endpoint '{DefaultApiPaths.SET_GENERATION_PARAMS}' and '{DefaultApiPaths.GET_GENERATION_PARAMS}' have been added, but this API is disabled. To enable it, you must initialize ChatStream with allow_set_generation_params=True",
+                                           "ja": f"APIエンドポイント '{DefaultApiPaths.SET_GENERATION_PARAMS}' および '{DefaultApiPaths.GET_GENERATION_PARAMS}' を追加しましたが、このAPIは無効です。有効にするには、allow_set_generation_params=True で ChatStream を初期化する必要があります"}))
 
     if is_enabled("get_resource_usage"):
         async def get_resource_usage_api(request: Request):
@@ -117,10 +128,14 @@ def append_apis(chat_stream, app, opts,logger):
             APIRoute(path=DefaultApiPaths.GET_RESOURCE_USAGE, endpoint=get_resource_usage_api, methods=["GET"]))
 
         if chat_stream.allow_get_resource_usage:
-            logger.debug(f"APIエンドポイント '{DefaultApiPaths.GET_RESOURCE_USAGE}' を追加しました")
+
+            logger.debug(eloc.to_str({"en": f"API endpoint '{DefaultApiPaths.GET_RESOURCE_USAGE}' added.",
+                                      "ja": f"APIエンドポイント '{DefaultApiPaths.GET_RESOURCE_USAGE}' を追加しました"}))
         else:
-            logger.warning(
-                f"APIエンドポイント '{DefaultApiPaths.GET_RESOURCE_USAGE}' を追加しましたが、このAPIは無効です。有効にするには、allow_get_resource_usage=True で ChatStream を初期化する必要があります")
+
+            logger.warning(eloc.to_str({
+                                           "en": f"API endpoint '{DefaultApiPaths.GET_RESOURCE_USAGE}' has been added, but this API is disabled. To enable it, you must initialize ChatStream with allow_get_resource_usage=True",
+                                           "ja": f"APIエンドポイント '{DefaultApiPaths.GET_RESOURCE_USAGE}' を追加しましたが、このAPIは無効です。有効にするには、allow_get_resource_usage=True で ChatStream を初期化する必要があります"}))
 
     if is_enabled("web_ui"):
         ui_init_params = opts.get("web_ui_params", {})
@@ -131,10 +146,12 @@ def append_apis(chat_stream, app, opts,logger):
         app.router.routes.append(APIRoute(path=DefaultApiPaths.JS, endpoint=js, methods=["GET"]))
 
         if chat_stream.allow_web_ui:
-            logger.debug(f"APIエンドポイント '{DefaultApiPaths.JS}' を追加しました")
+            logger.debug(eloc.to_str({"en": f"API endpoint '{DefaultApiPaths.JS}' added.",
+                                      "ja": f"APIエンドポイント '{DefaultApiPaths.JS}' を追加しました"}))
         else:
-            logger.warning(
-                f"APIエンドポイント '{DefaultApiPaths.JS}' を追加しましたが、このAPIは無効です。有効にするには、allow_web_ui=True で ChatStream を初期化する必要があります")
+            logger.warning(eloc.to_str({
+                                           "en": f"API endpoint '{DefaultApiPaths.JS}' has been added, but this API is disabled. To enable it, you must initialize ChatStream with allow_web_ui=True",
+                                           "ja": f"APIエンドポイント '{DefaultApiPaths.JS}' を追加しましたが、このAPIは無効です。有効にするには、allow_web_ui=True で ChatStream を初期化する必要があります"}))
 
         async def index(request: Request, response: Response):
             return await chat_stream.index(response, opts={"ui_init_params": ui_init_params})
@@ -142,7 +159,9 @@ def append_apis(chat_stream, app, opts,logger):
         app.router.routes.append(APIRoute(path=DefaultApiPaths.INDEX, endpoint=index, methods=["GET"]))
 
         if chat_stream.allow_web_ui:
-            logger.debug(f"APIエンドポイント '{DefaultApiPaths.INDEX}' を追加しました")
+            logger.debug(eloc.to_str({"en": f"API endpoint '{DefaultApiPaths.INDEX}' added.",
+                                      "ja": f"APIエンドポイント '{DefaultApiPaths.INDEX}' を追加しました"}))
         else:
-            logger.warning(
-                f"APIエンドポイント '{DefaultApiPaths.INDEX}' を追加しましたが、このAPIは無効です。有効にするには、allow_web_ui=True で ChatStream を初期化する必要があります")
+            logger.warning(eloc.to_str({
+                                           "en": f"API endpoint '{DefaultApiPaths.INDEX}' has been added, but this API is disabled. To enable it, you must initialize ChatStream with allow_web_ui=True",
+                                           "ja": f"APIエンドポイント '{DefaultApiPaths.INDEX}' を追加しましたが、このAPIは無効です。有効にするには、allow_web_ui=True で ChatStream を初期化する必要があります"}))
