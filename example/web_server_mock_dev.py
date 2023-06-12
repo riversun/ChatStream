@@ -62,7 +62,7 @@ async def stream_api(request: Request):
         chat_prompt = session.get("chat_prompt")
         print(chat_prompt.create_prompt())
 
-    response = await chat_stream.handle_starlette_request(request, request_body, callback=callback_func)
+    response = await chat_stream.handle_chat_stream_request(request, request_body, callback=callback_func)
 
     return response
 

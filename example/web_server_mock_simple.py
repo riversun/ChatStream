@@ -36,7 +36,7 @@ app.add_middleware(FastSessionMiddleware,
 
 @app.post("/chat_stream")
 async def stream_api(request: Request):
-    return await chat_stream.handle_starlette_request(request)
+    return await chat_stream.handle_chat_stream_request(request)
 
 
 @app.post("/clear_context")

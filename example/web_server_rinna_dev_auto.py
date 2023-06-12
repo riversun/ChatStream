@@ -46,13 +46,13 @@ chat_stream = ChatStream(
     temperature=0.7,  # The temperature value for randomness in prediction
     top_k=10,  # Value of top K for sampling
     top_p=0.7,  # Value of top P for samplinga
+    allow_web_ui=True,  # WebUIを有効にする
     allow_clear_context=True,  # コンテクストのクリアを許可する
     allow_get_prompt=True,  # プロンプトの取得を許可する
     allow_get_load=True,  # 負荷情報の取得を許可する
-    allow_web_ui=True,  # WebUIを有効にする
     allow_set_generation_params=True,  # ユーザーごとに生成パラメータをセットできるようにする
     allow_get_resource_usage=True,
-
+    locale='en',
     # repetition_penalty=1.03,  # Penalty for repetition
     # repetition_penalty_method="multiplicative",  # Calculation method for repetition penalty
 )
@@ -82,79 +82,28 @@ app.add_middleware(FastSessionMiddleware,
                    secure=False,  # False: For local development env. True: For production. Requires Https
                    )
 
-
-@app.post("/chat_stream")
-async def stream_api(request: Request):
-    def callback_func(req, message):
-        session_mgr = getattr(req.state, "session", None)
-        if session_mgr:
-            session = session_mgr.get_session()
-            chat_prompt = session.get("chat_prompt")
-            print(f"Prompt:'{chat_prompt.create_prompt()}'")
-
-    response = await chat_stream.handle_chat_stream_request(request, callback=callback_func)
-
-    return response
-
-
-@app.post("/clear_context")
-async def clear_api(request: Request):
-    return await chat_stream.handle_clear_context_request(request)
-
-
-@app.get("/get_prompt")
-async def get_prompt_api(request: Request):
-    return await chat_stream.handle_get_prompt_request(request)
-
-
-
-@app.get("/get_resource_usage")
-async def get_prompt_api(request: Request):
-    return await chat_stream.handle_get_resource_usage_request(request)
-
-
-@app.get("/get_generation_params")
-async def get_generation_params_api(request: Request):
-    return await chat_stream.handle_get_generation_params_request(request)
-
-
-@app.post("/set_generation_params")
-async def set_generation_params_api(request: Request):
-    return await chat_stream.handle_set_generation_params_request(request)
-
-
-@app.get("/get_load")
-async def set_generation_params_api(request: Request):
-    return await chat_stream.handle_get_load_request(request)
-
-
-@app.get("/chatstream.js")
-def index(response: Response):
-    return chat_stream.js(response)
-
-
-@app.get("/")
-def index(response: Response):
-    ui_init_params = {
-        "developMode": True,
-        "clearContextOnReload": True,
-        "welcomeMessage": "ようこそ!私はAIアシスタントです。なんでも聞いてください",
-        "style_name": "casual_white",
-        "style_opts": {
-            "show_ai_icon": True,
-            "show_human_icon": True,
-            "show_human_icon_on_input": True,
-            "ai_icon_url": "https://riversun.github.io/chatstream/img/icon_ai_00.png",
-            "human_icon_url": "https://riversun.github.io/chatstream/img/icon_human_00.png",
-            "regenerate_enabled": True,
-            "button_label_stop_generating": "文章生成停止",
-            "button_label_regenerate": "レスポンスを再生成",
-            "label_input_placeholder": "メッセージを入力してください",
-            "debug_window_enabled": True,  # TODO 実装
-        }
+ui_init_params = {
+    "developMode": True,# True: ローカルPCでの起動など HTTPS の無い環境でも HTTP セッションが有効になる、また、クロスオリジンポリシーが緩和される
+    "clearContextOnReload": True,# True: ブラウザで Web UIをリロードすると、会話履歴がクリアされる
+    "welcomeMessage": "ようこそ!私はAIアシスタントです。なんでも聞いてください",
+    "style_name": "casual_white",# チャットのデザイン、インタラクションのプリセット名
+    "style_opts": {
+        "show_ai_icon": True,
+        "show_human_icon": True,
+        "show_human_icon_on_input": True,
+        "ai_icon_url": "https://riversun.github.io/chatstream/img/icon_ai_00.png",
+        "human_icon_url": "https://riversun.github.io/chatstream/img/icon_human_00.png",
+        "regenerate_enabled": True,
+        "button_label_stop_generating": "文章生成停止",
+        "button_label_regenerate": "レスポンスを再生成",
+        "label_input_placeholder": "メッセージを入力してください",
+        "debug_window_enabled": True,  # TODO 実装。
     }
+}
 
-    return chat_stream.index(response, opts={"ui_init_params": ui_init_params})
+# FastAPI に ChatStream サービス関連 エンドポイントパス(URLパス)を自動的にセットする
+# 各 URLパスの具体的な内容は default_api_paths.py を参照
+chat_stream.append_apis(app, {"all_apis": True, "web_ui_params": ui_init_params})
 
 
 @app.on_event("startup")
