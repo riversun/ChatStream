@@ -12,19 +12,27 @@ import traceback
 
 class SimpleSessionRequestHandler(AbstractRequestHandler):
     """
-        FastAPI/Starlette の Request を処理し、 chat_prompt(会話履歴を含むプロンプト) をオンメモリのセッションに格納する
-        chat_prompt をセッションに保存する request_handler
+    FastAPI/Starlette の Request を処理し、 chat_prompt(会話履歴を含むプロンプト) を  HTTPセッション に格納するリクエストハンドラ
+
+    HTTPセッションの物理的格納先はデフォルトではオンメモリを想定しているが、
+    アプリケーション側でミドルウェアにオンメモリ以外のセッションストレージを指定した場合はこの限りではない。
     """
 
     def __init__(self, session_attr_name="session"):
-        super().__init__()  # Call the initialization of the base class
+        super().__init__()
         self.session_attr = session_attr_name
 
     async def process_request(self, request: Request, request_body, streaming_finished_callback):
         """
         FastAPI/Starlette の Request を処理し、 chat_prompt(会話履歴を含むプロンプト) をオンメモリのセッションに格納する
         chat_prompt をセッションに保存する request_handler
+
+        :param request:
+        :param request_body:
+        :param streaming_finished_callback: ストリームの送出終了を受け取るコールバック関数
+        :return:
         """
+
         try:
 
             self.logger.debug(self.eloc.to_str({"en": f"{req_id(request)} Starts handling the request",
@@ -84,6 +92,7 @@ class SimpleSessionRequestHandler(AbstractRequestHandler):
                 self.logger.debug(self.eloc.to_str({
                     "en": f"{req_id(request)} Do regenerate. user_input(request_last_msg used at regenerate):'{chat_prompt.get_requester_last_msg()}'",
                     "ja": f"'{req_id(request)} regenerate します。 user_input(regenerate時に使用される request_last_msg):'{chat_prompt.get_requester_last_msg()}'"}))
+
                 if chat_prompt.is_empty():
                     # - ユーザー・AIアシスタント(responder)間で、まだ会話が何も存在しない場合
                     # => まだ会話が存在しないときに、 "regenerate" を実行した場合は、
@@ -133,8 +142,8 @@ class SimpleSessionRequestHandler(AbstractRequestHandler):
 
                     self.logger.debug(
                         self.eloc.to_str({
-                                             "en": f"{req_id(request)} A network error occurred, but the session content was saved halfway through",
-                                             "ja": f"'{req_id(request)} ネットワークエラーが発生しましたが、セッション内容は途中まで保存しました"}))
+                            "en": f"{req_id(request)} A network error occurred, but the session content was saved halfway through",
+                            "ja": f"'{req_id(request)} ネットワークエラーが発生しましたが、セッション内容は途中まで保存しました"}))
                     pass
                 elif message.startswith("unknown_error_occurred"):
                     # 予期せぬエラー（一般的な Syntax Errorなど)
@@ -143,8 +152,7 @@ class SimpleSessionRequestHandler(AbstractRequestHandler):
                     # message=="client_disconnected_before_streaming": はこの上位のキューイングループのみでハンドリングできるので、このコールバックには到達しない
                     pass
 
-                # request 処理が正常終了したことを指定されたコールバック関数に通知
-                # このコールバックは実際は上位の キューイングループ
+                # request 処理が正常終了したことを指定されたコールバック関数に通知.このコールバックは実際は上位の キューイングループ
                 await streaming_finished_callback(request, message)
 
             custom_generation_params = session.get("generation_params", None)
@@ -153,27 +161,31 @@ class SimpleSessionRequestHandler(AbstractRequestHandler):
             streaming_response = StreamingResponse(generator, media_type="text/plain")
 
             self.logger.debug(self.eloc.to_str({
-                                                   "en": f"{req_id(request)} StreamingResponse is generated from the sequential text generator. This is returned as the return value.",
-                                                   "ja": f"'{req_id(request)} 逐次文章生成の generator から StreamingResponse 生成しました。これを戻り値として return　します"}))
+                "en": f"{req_id(request)} StreamingResponse is generated from the sequential text generator. This is returned as the return value.",
+                "ja": f"'{req_id(request)} 逐次文章生成の generator から StreamingResponse 生成しました。これを戻り値として return　します"}))
             return streaming_response
 
         except Exception as e:
-            # ここで、一般的なエラーをキャッチするが 非同期 generator が値を streamresponse で返し始めた後、generator内で exceptionを
-            # raise しても、ここでキャッチできないことに注意。
-            self.logger.debug(self.eloc.to_str({"en": f"{req_id(request)} An unexpected error occurred during request handler execution. {e}\n{traceback.format_exc()}",
-                                                "ja": f"'{req_id(request)} リクエストハンドラ実行中に予期せぬエラーが発生しました {e}\n{traceback.format_exc()}"}))
+            # ここで、一般的なエラーをキャッチする。
+            # 非同期 generator が値を streamresponse で返し始めた後、
+            # generator内で exceptionを raise しても、ここでキャッチできないことに注意。
+            self.logger.debug(self.eloc.to_str({
+                "en": f"{req_id(request)} An unexpected error occurred during request handler execution. {e}\n{traceback.format_exc()}",
+                "ja": f"'{req_id(request)} リクエストハンドラ実行中に予期せぬエラーが発生しました {e}\n{traceback.format_exc()}"}))
 
             return await self.return_internal_server_error_response(request, streaming_finished_callback,
                                                                     "simple session request");
 
     async def return_internal_server_error_response(self, request, callback, detail):
         """
-        Internal Server Error を JSON のエラーレスポンスとして返すときに使用する
-        各行で return JSONResponse をすることは禁止
-        理由は streaming_finished_callback　コールバックの戻し忘れを防ぐため。
-        streaming_finished_callback　をコールバックしないと、
+        Internal Server Error の応答を生成する
+
+        本メソッドは、 Internal Server Error を JSON のエラーレスポンスとして返すときに使用する
+        逆に各行で return JSONResponse をすることは禁止とする。
+        禁止の理由は streaming_finished_callback コールバックの　返し忘れ　を防ぐため。
+        もし、返し忘れで streaming_finished_callback　をコールバックしないと、
         同時アクセスキューイングシステムでアクセスブロックに使用しているセマフォが解放されず
-        次のリクエストを受け付けられない事態となってしまうため。
+        次のリクエストを受け付けられない事態となってしまう。
         """
         await callback(request, f"unknown_error_occurred,while processing {detail}")
         return JSONResponse(
