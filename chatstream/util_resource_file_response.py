@@ -21,7 +21,7 @@ def _send_resource(file_name, response: Response, replacer=None):
     if replacer:
         data = replacer(data)
 
-    response.body = data.encode('utf-8')  # You need to encode string to bytes
+    response.body = data.encode("utf-8")  # You need to encode string to bytes
     response.media_type = "text/html"
     response.status_code = 200  # Add this line
 
