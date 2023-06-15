@@ -69,5 +69,5 @@ def get_resource_usage(opts={}):
 
 
 if False:
-    ret = get_resource_usage({"num_gpus": 1, "device": torch.device('cuda')})
+    ret = get_resource_usage({"num_gpus": 1, "device": torch.device("cuda")})
     print(ret)
