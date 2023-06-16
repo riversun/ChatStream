@@ -6,6 +6,7 @@ from fastsession import FastSessionMiddleware, MemoryStore
 from starlette.requests import Request
 
 from chatstream.access_control.client_role_wrapper import ClientRoleWrapper
+from chatstream.access_control.default_client_role_grant_middleware import CHAT_STREAM_CLIENT_ROLE
 from chatstream.easy_locale import EasyLocale
 
 
@@ -139,8 +140,10 @@ async def test_client_role_wrapper():
     assert role is None  # まだ、 request.state以下にロールは定義されていないのでNone
 
     # 自前で set_request_state をよび、ロールをセットする
-    key = "client_role_name"
-    value = "test_role"
+
+    # ChatStream 用の request.state にキー、値を書き込む
+    key = CHAT_STREAM_CLIENT_ROLE
+    value = {"client_role_name": "example_role", "allowed_apis": ["example1", "example2"]}
     wrapper.set_request_state(test_request, key, value)
     role2 = wrapper.get_agent_current_client_role(test_request)
-    assert role2 == "test_role"
+    assert role2.get("client_role_name") == "example_role"

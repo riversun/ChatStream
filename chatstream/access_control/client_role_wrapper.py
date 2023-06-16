@@ -1,5 +1,7 @@
 from starlette.requests import Request
 
+from chatstream.access_control.default_client_role_grant_middleware import CHAT_STREAM_CLIENT_ROLE
+
 
 class ClientRoleWrapper:
     """
@@ -66,9 +68,9 @@ class ClientRoleWrapper:
         if not hasattr(request.state, "__chatstream__"):
             request.state.__chatstream__ = {}
 
-        role_name = request.state.__chatstream__.get("client_role_name",None)
+        client_role = request.state.__chatstream__.get(CHAT_STREAM_CLIENT_ROLE,None)
 
-        return role_name
+        return client_role
 
     def set_request_state(self,request,key,value):
         """
