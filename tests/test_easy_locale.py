@@ -4,6 +4,10 @@ from chatstream.easy_locale import EasyLocale
 
 
 def test_easy_locale():
+    """
+    簡易ロケールをテストする
+    :return:
+    """
     obj = EasyLocale({'fallbackLocale': 'en'})
     greeting_message = {"ja": "こんにちは", "en": "Hello"}
     assert obj.to_str(greeting_message) in ["こんにちは", "Hello"]
