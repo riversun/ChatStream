@@ -1,6 +1,7 @@
 from starlette.requests import Request
 
 from chatstream.access_control.default_client_role_grant_middleware import CHAT_STREAM_CLIENT_ROLE
+from chatstream.default_api_names import DefaultApiNames
 
 
 class ClientRoleWrapper:
@@ -68,11 +69,11 @@ class ClientRoleWrapper:
         if not hasattr(request.state, "__chatstream__"):
             request.state.__chatstream__ = {}
 
-        client_role = request.state.__chatstream__.get(CHAT_STREAM_CLIENT_ROLE,None)
+        client_role = request.state.__chatstream__.get(CHAT_STREAM_CLIENT_ROLE, None)
 
         return client_role
 
-    def set_request_state(self,request,key,value):
+    def set_request_state(self, request, key, value):
         """
         ChatStream 用の request.state にキー、値を書き込む
         :param request:
@@ -83,7 +84,7 @@ class ClientRoleWrapper:
         if not hasattr(request.state, "__chatstream__"):
             request.state.__chatstream__ = {}
 
-        request.state.__chatstream__[key]=value
+        request.state.__chatstream__[key] = value
 
     def verify(self):
         """
@@ -93,6 +94,10 @@ class ClientRoleWrapper:
         ・TODO フォーマットエラーの検出
         :return:
         """
+
+
+        is_browser_default_role_found = False
+        is_agent_default_role_found = False
         for role in self.client_roles.items():
             role_name = role[0]
             role_contents = role[1]
@@ -102,11 +107,52 @@ class ClientRoleWrapper:
             use_session = apis.get("use_session")
             enable_dev_tool = apis.get("enable_dev_tool")
 
+            if allow is None:
+                raise Exception("'allow' property should be set.")
+
+            if allow != "all":
+                if isinstance(allow, list):
+                    for val in allow:
+                        if val not in DefaultApiNames.API_NAMES:
+                            raise ValueError(f"Invalid API name '{val}' in allow list. Allowed values are 'all' or any of {DefaultApiNames.API_NAMES}")
+                else:
+                    raise TypeError("Invalid type for allow. Expected 'all' or list of API names.")
+
+
             if auth_method == "nothing" and use_session:  # デフォルトロール("nothing") かつ セッションあり(=ブラウザ用)
                 # デフォルトロールがみつかったので、例外を投げずに戻る
-                return True
+                if is_browser_default_role_found:
+                    # 既にデフォルトロールが定義されているのに、2つ目が発見された
+                    self.logger.debug(self.eloc.to_str({
+                        "en": f"Several default roles are defined for the lauter. Only one default role can be defined",
+                        "ja": f"ブラウザー用のデフォルトロールが複数定義されています。デフォルトロールは１つのみ定義可能です"}))
+                    raise Exception(f"Several default roles are defined for the lauter. Only one default role can be defined.")
 
-        raise Exception(f"browser based default client role not found.Please specify default client role for browser.")
+                is_browser_default_role_found = True
+
+            if auth_method == "nothing" and not use_session:  # デフォルトロール("nothing") かつ セッションあり(=ブラウザ用)
+                # デフォルトロールがみつかったので、例外を投げずに戻る
+
+                is_agent_default_role_found = True
+
+        if not is_browser_default_role_found:
+            # ブラウザ用のデフォルトロールが定義されていないとき
+
+            self.logger.debug(self.eloc.to_str({
+                "en": f"Default role for browser not defined.",
+                "ja": f"ブラウザー用のデフォルトロールが定義されていません。"}))
+            raise Exception(f"browser based default client role not found.Please specify default client role for browser.")
+
+
+        if not is_agent_default_role_found:
+            # サーバー用のデフォルトロールが定義されていないとき
+            # 必須ではないのでログのみ
+
+            self.logger.debug(self.eloc.to_str({
+                "en": f"Default role for the agent is not defined.",
+                "ja": f"エージェント用のデフォルトロールは定義されていません。"}))
+
+        return True
 
     def get_browser_default_client_role(self):
         """

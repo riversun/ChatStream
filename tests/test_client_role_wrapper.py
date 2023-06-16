@@ -147,3 +147,109 @@ async def test_client_role_wrapper():
     wrapper.set_request_state(test_request, key, value)
     role2 = wrapper.get_agent_current_client_role(test_request)
     assert role2.get("client_role_name") == "example_role"
+
+
+def test_verify_success():
+    # 正常系のテストケース
+    client_roles = {
+        "user": {
+            "apis": {
+                "allow": ["chat_stream", "clear_context"],
+                "auth_method": "nothing",
+                "use_session": True,
+            }
+        },
+    }
+    logger = ConsoleLogger()
+    eloc = EasyLocale()
+    wrapper = ClientRoleWrapper(logger, eloc, client_roles=client_roles)
+    assert wrapper.verify() == True
+
+
+def test_verify_invalid_allow():
+    # allow に不正な値が含まれているケース
+    client_roles = {
+        "user": {
+            "apis": {
+                "allow": ["invalid_api_name"],
+                "auth_method": "nothing",
+                "use_session": True,
+            }
+        },
+    }
+    logger = ConsoleLogger()
+    eloc = EasyLocale()
+    wrapper = ClientRoleWrapper(logger, eloc, client_roles=client_roles)
+
+    with pytest.raises(ValueError):
+        wrapper.verify()
+
+
+def test_verify_no_default_role():
+    # ブラウザ用デフォルトロールが存在しないケース
+    client_roles = {
+        "user": {
+            "apis": {
+                "allow": ["chat_stream", "clear_context", "web_ui"],
+                "auth_method": "some_method",
+                "use_session": True,
+            }
+        },
+    }
+    logger = ConsoleLogger()
+    eloc = EasyLocale()
+    wrapper = ClientRoleWrapper(logger, eloc, client_roles=client_roles)
+
+    with pytest.raises(Exception):
+        wrapper.verify()
+
+
+def test_verify_multiple_default_roles():
+    # デフォルトロールが複数存在するケース
+    client_roles = {
+        "user": {
+            "apis": {
+                "allow": ["chat_stream", "clear_context", "web_ui"],
+                "auth_method": "nothing",
+                "use_session": True,
+            }
+        },
+        "user2": {
+            "apis": {
+                "allow": ["chat_stream", "clear_context", "web_ui"],
+                "auth_method": "nothing",
+                "use_session": True,
+            }
+        },
+    }
+    logger = ConsoleLogger()
+    eloc = EasyLocale()
+    wrapper = ClientRoleWrapper(logger, eloc, client_roles=client_roles)
+
+    with pytest.raises(Exception):
+        wrapper.verify()
+
+
+def test_verify_default_role_no_session():
+    client_roles = {
+        "user": {
+            "apis": {
+                "allow": ["chat_stream", "clear_context"],
+                "auth_method": "nothing",
+                "use_session": True,  # セッションベースの認証を使用する = Browser用
+            }
+        },
+        "agent": {
+            "apis": {
+                "allow": ["chat_stream", "clear_context"],
+                "auth_method": "something",
+                "use_session": False,  # セッションベースの認証を使用しない = Agent用
+            }
+        },
+    }
+    logger = ConsoleLogger()
+    eloc = EasyLocale()
+    wrapper = ClientRoleWrapper(logger, eloc, client_roles=client_roles)
+    wrapper.verify()
+
+    assert wrapper.verify() == True
