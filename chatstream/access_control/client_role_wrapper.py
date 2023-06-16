@@ -39,6 +39,11 @@ class ClientRoleWrapper:
         :return:
         """
         session_mgr = getattr(request.state, "session", None)
+
+        if session_mgr is None:
+            self.logger.debug("session_mgr not exists")
+            return None
+
         # セッションオブジェクト（辞書オブジェクト）を取得する
         session = session_mgr.get_session()
         return session
@@ -129,7 +134,7 @@ class ClientRoleWrapper:
 
                 self.logger.debug(self.eloc.to_str({
                     "en": f"Default role for browser definition found. role_name:{role_name}  allowed_apis:{allow}",
-                    "ja": f"ブラウザ用デフォルトロールの定義を発見しました。 role_name:{role_name}  allowed_apis:{allow}"}))
+                    "ja": f"ブラウザ用デフォルトロールの定義を取得しました。 role_name:{role_name}  allowed_apis:{allow}"}))
 
                 self.browser_default_client_role = out
                 return out
@@ -165,7 +170,7 @@ class ClientRoleWrapper:
             enable_dev_tool = apis.get("enable_dev_tool", False)
 
             if auth_method == "nothing" and not use_session:  # デフォルトロール("nothing") かつ セッションなし(=プログラムからのアクセス用)
-                out["enabled"] = False
+                out["enabled"] = True
                 out["client_role_name"] = role_name
                 out["allowed_apis"] = allow  # TODO "all"ならすべてのapiを入れる
                 out["enable_dev_tool"] = enable_dev_tool

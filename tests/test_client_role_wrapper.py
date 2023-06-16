@@ -117,13 +117,14 @@ async def test_client_role_wrapper():
 
     # ブラウザクライアント用のデフォルトロールを取得
     browser_role = wrapper.get_browser_default_client_role()
-
+    assert browser_role['enabled'] == True
     assert browser_role['client_role_name'] == 'user'
     assert browser_role['allowed_apis'] == ['chat_stream', 'clear_context', 'web_ui']
     assert browser_role['enable_dev_tool'] == False
 
     # エージェントクライアント用のデフォルトロールを取得
     agent_role = wrapper.get_agent_default_client_role()
+    assert agent_role['enabled'] == True
     assert agent_role['client_role_name'] == 'server_default'
     assert agent_role['allowed_apis'] == ['get_load']
     assert agent_role['enable_dev_tool'] == False
