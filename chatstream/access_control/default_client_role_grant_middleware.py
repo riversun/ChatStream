@@ -91,17 +91,21 @@ class DefaultClientRoleGrantMiddleware(BaseHTTPMiddleware):
         if crr_role is None:
             # - 今アクセスしているブラウザクライアントに現在のロールがセットされていないとき
             browser_default_client_role = self.client_role_wrapper.get_browser_default_client_role()
+
             default_role_exists = browser_default_client_role.get("enabled", False)
 
             if default_role_exists:
                 # - ブラウザクライアントのデフォルトロールが存在するとき
 
                 # 現在アクセス中のブラウザクライアントのセッションに、ロール情報をセットする
-                role_name = browser_default_client_role.get("client_role_name")
-                allowed_apis = browser_default_client_role.get("allowed_apis")
-                enable_dev_tool = browser_default_client_role.get("enable_dev_tool")
 
-                session[CHAT_STREAM_CLIENT_ROLE] = {"client_role_name": role_name, "allowed_apis": allowed_apis, "enable_dev_tool": enable_dev_tool}
+                browser_default_role = browser_default_client_role.copy()
+                browser_default_role.pop("enabled", None)  # 削除する
+                session[CHAT_STREAM_CLIENT_ROLE] = browser_default_role
+
+                role_name = browser_default_role.get("client_role_name")
+                allowed_apis = browser_default_role.get("allowed_apis")
+                enable_dev_tool = browser_default_role.get("enable_dev_tool")
 
                 self.logger.debug(
                     self.eloc.to_str(
@@ -142,13 +146,14 @@ class DefaultClientRoleGrantMiddleware(BaseHTTPMiddleware):
             # - エージェントクライアントのデフォルトロールが存在するとき
 
             # 現在アクセス中のブラウザクライアントのセッションに、ロール情報をセットする
-            role_name = agent_default_client_role.get("client_role_name")
-            allowed_apis = agent_default_client_role.get("allowed_apis")
 
             # ChatStream 用の request.state にキー、値を書き込む
-            client_role = {"client_role_name": role_name, "allowed_apis": allowed_apis}
+            client_role = agent_default_client_role.copy()
+            client_role.pop("enabled", None)  # 削除する
             self.client_role_wrapper.set_request_state(request, CHAT_STREAM_CLIENT_ROLE, client_role)
 
+            role_name = client_role.get("client_role_name")
+            allowed_apis = client_role.get("allowed_apis")
             self.logger.debug(
                 self.eloc.to_str(
                     {
@@ -165,4 +170,3 @@ class DefaultClientRoleGrantMiddleware(BaseHTTPMiddleware):
                         "en": f"{req_id(request)} Agent client requesting {request.url} Agent default role doesn't exist.",
                         "ja": f"{req_id(request)} エージェントクライアントが {request.url} へのリクエスト中 エージェント用のデフォルトロールは定義されていません。"
                     }))
-

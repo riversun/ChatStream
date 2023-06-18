@@ -1,6 +1,7 @@
 from starlette.requests import Request
 
 from chatstream.access_control.default_client_role_grant_middleware import CHAT_STREAM_CLIENT_ROLE
+from chatstream.access_control.role_def_to_client_role import role_def_to_client_role
 from chatstream.default_api_names import DefaultApiNames
 
 
@@ -20,7 +21,7 @@ class ClientRoleWrapper:
         self.agent_default_client_role = None  # エージェント向けのデフォルトロールをキャッシュしておく
 
         self.browser_client_roles_without_default = None
-        self.agent_client_roles_without_default = None  # エージェント向けロール(デフォルトロール以外)をキャッシュしておく
+        self.agent_client_role_defs_without_default = None  # エージェント向けロール(デフォルトロール以外)をキャッシュしておく
 
     def is_use_client_role_based_access_control(self):
         """
@@ -100,9 +101,9 @@ class ClientRoleWrapper:
 
         is_browser_default_role_found = False
         is_agent_default_role_found = False
-        for role in self.client_roles.items():
-            role_name = role[0]
-            role_contents = role[1]
+        for role_def in self.client_roles.items():
+            role_name = role_def[0]
+            role_contents = role_def[1]
             apis = role_contents.get("apis")
             allow = apis.get("allow")
             auth_method = apis.get("auth_method")
@@ -165,9 +166,9 @@ class ClientRoleWrapper:
             return self.browser_default_client_role
 
         out = {}
-        for role in self.client_roles.items():
-            role_name = role[0]
-            role_contents = role[1]
+        for role_def in self.client_roles.items():
+            role_name = role_def[0]
+            role_contents = role_def[1]
             apis = role_contents.get("apis")
             allow = apis.get("allow")
             auth_method = apis.get("auth_method")
@@ -175,11 +176,8 @@ class ClientRoleWrapper:
             enable_dev_tool = apis.get("enable_dev_tool", False)
 
             if auth_method == "nothing" and use_session:  # デフォルトロール("nothing") かつ セッションあり(=ブラウザ用)
+                out = role_def_to_client_role(role_def)
                 out["enabled"] = True
-                out["client_role_name"] = role_name
-                out["allowed_apis"] = allow  # TODO "all"ならすべてのapiを入れる
-                out["enable_dev_tool"] = enable_dev_tool
-
                 self.logger.debug(self.eloc.to_str({
                     "en": f"Default role for browser definition found. role_name:{role_name}  allowed_apis:{allow}",
                     "ja": f"ブラウザ用デフォルトロールの定義を取得しました。 role_name:{role_name}  allowed_apis:{allow}"}))
@@ -208,9 +206,9 @@ class ClientRoleWrapper:
             return self.agent_default_client_role
 
         out = {}
-        for role in self.client_roles.items():
-            role_name = role[0]
-            role_contents = role[1]
+        for role_def in self.client_roles.items():
+            role_name = role_def[0]
+            role_contents = role_def[1]
             apis = role_contents.get("apis")
             allow = apis.get("allow")
             auth_method = apis.get("auth_method")
@@ -218,10 +216,8 @@ class ClientRoleWrapper:
             enable_dev_tool = apis.get("enable_dev_tool", False)
 
             if auth_method == "nothing" and not use_session:  # デフォルトロール("nothing") かつ セッションなし(=プログラムからのアクセス用)
+                out = role_def_to_client_role(role_def)
                 out["enabled"] = True
-                out["client_role_name"] = role_name
-                out["allowed_apis"] = allow  # TODO "all"ならすべてのapiを入れる
-                out["enable_dev_tool"] = enable_dev_tool
 
                 self.logger.debug(self.eloc.to_str({
                     "en": f"Default role for agent definition found. role_name:{role_name}  allowed_apis:{allow}",
@@ -239,7 +235,7 @@ class ClientRoleWrapper:
 
         return out
 
-    def get_agent_special_roles(self):
+    def get_agent_special_role_defs(self):
         """
         エージェント用のロールを取得する
         ・セッション無効のもの
@@ -248,11 +244,11 @@ class ClientRoleWrapper:
         :return:
         """
 
-        if self.agent_client_roles_without_default is None:
-            roles = []
-            for role in self.client_roles.items():
-                role_name = role[0]
-                role_contents = role[1]
+        if self.agent_client_role_defs_without_default is None:
+            role_defs = []
+            for role_def in self.client_roles.items():
+                role_name = role_def[0]
+                role_contents = role_def[1]
                 apis = role_contents.get("apis")
                 allow = apis.get("allow")
                 auth_method = apis.get("auth_method")
@@ -260,13 +256,14 @@ class ClientRoleWrapper:
                 enable_dev_tool = apis.get("enable_dev_tool", False)
 
                 if auth_method != "nothing" and not use_session:  # デフォルトロール("nothing") かつ セッションなし(=プログラムからのアクセス用)
-                    roles.append(role)
 
-            self.agent_client_roles_without_default = roles
+                    role_defs.append(role_def)
 
-        return self.agent_client_roles_without_default
+            self.agent_client_role_defs_without_default = role_defs
 
-    def get_browser_special_roles(self):
+        return self.agent_client_role_defs_without_default
+
+    def get_browser_special_role_defs(self):
         """
         ブラウザクライアント用のロールを取得する
         ・セッション有効のもの
@@ -276,10 +273,10 @@ class ClientRoleWrapper:
         """
 
         if self.browser_client_roles_without_default is None:
-            roles = []
-            for role in self.client_roles.items():
-                role_name = role[0]
-                role_contents = role[1]
+            role_defs = []
+            for role_def in self.client_roles.items():
+                role_name = role_def[0]
+                role_contents = role_def[1]
                 apis = role_contents.get("apis")
                 allow = apis.get("allow")
                 auth_method = apis.get("auth_method")
@@ -287,8 +284,9 @@ class ClientRoleWrapper:
                 enable_dev_tool = apis.get("enable_dev_tool", False)
 
                 if auth_method != "nothing" and use_session:  # デフォルトロール("nothing") かつ セッションなし(=プログラムからのアクセス用)
-                    roles.append(role)
 
-            self.browser_client_roles_without_default = roles
+                    role_defs.append(role_def)
+
+            self.browser_client_roles_without_default = role_defs
 
         return self.browser_client_roles_without_default

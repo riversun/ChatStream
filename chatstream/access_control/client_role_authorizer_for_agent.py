@@ -2,6 +2,8 @@ import hashlib
 
 from starlette.requests import Request
 
+from chatstream.access_control.role_def_to_client_role import role_def_to_client_role
+
 
 class ClientRoleAuthorizerForAgent:
     """
@@ -26,13 +28,13 @@ class ClientRoleAuthorizerForAgent:
         self.logger = logger
         self.eloc = eloc
         self.client_role_wrapper = client_role_wrapper
-        self.agent_client_roles = client_role_wrapper.get_agent_special_roles()
+        self.agent_client_roles = client_role_wrapper.get_agent_special_role_defs()
 
     def get_promoted_role(self, request: Request):
 
-        for role in self.agent_client_roles:
-            role_name = role[0]
-            role_contents = role[1]
+        for role_def in self.agent_client_roles:
+            role_name = role_def[0]
+            role_contents = role_def[1]
             apis = role_contents.get("apis")
             allow = apis.get("allow")
             auth_method = apis.get("auth_method")
@@ -45,7 +47,8 @@ class ClientRoleAuthorizerForAgent:
                 header_phrase = apis.get("header_phrase")
                 if request_auth_header_text == header_phrase:  # 認可処理
                     self.logger.debug(f"auth_method:{auth_method} matched and role_name:'{role_name}' resolved")
-                    return role  # 認可されたロールを返す
+                    client_role = role_def_to_client_role(role_def)
+                    return client_role  # 認可されたロールを返す
 
             elif auth_method == "header_phrase_sha256":
                 request_auth_header_text = request.headers.get("X-ChatStream-Auth-Header")
@@ -53,7 +56,8 @@ class ClientRoleAuthorizerForAgent:
                 request_auth_header_encoded = hashlib.sha256(request_auth_header_text.encode()).hexdigest()
                 if request_auth_header_encoded == header_phrase_encoded:  # 認可処理
                     self.logger.debug(f"auth_method:{auth_method} matched and role_name:'{role_name}' resolved")
-                    return role  # 認可されたロールを返す
+                    client_role = role_def_to_client_role(role_def)
+                    return client_role  # 認可されたロールを返す
 
             else:
                 raise Exception(f"Unknown agent auth method: '{auth_method}'")

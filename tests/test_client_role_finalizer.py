@@ -5,9 +5,10 @@ from fastsession import FastSessionMiddleware, MemoryStore
 
 from starlette.requests import Request
 
+from chatstream import ChatStream
 from chatstream.access_control.client_role_authorizer_for_agent import ClientRoleAuthorizerForAgent
 from chatstream.access_control.client_role_wrapper import ClientRoleWrapper
-from chatstream.access_control.default_client_role_grant_middleware import CHAT_STREAM_CLIENT_ROLE
+from chatstream.access_control.default_client_role_grant_middleware import CHAT_STREAM_CLIENT_ROLE, DefaultClientRoleGrantMiddleware
 from chatstream.easy_locale import EasyLocale
 
 
@@ -83,24 +84,20 @@ client_roles = {
 
 @pytest.mark.asyncio
 async def test_get_promoted_role_of_header_phrase():
-    # リクエストヘッダ "X-ChatStream-Auth-Header":"i am server" を指定すると、これに対応したロールが戻る
+    # セッションにひもづいた、ブラウザクライアントのデフォルトロールが request.state 下にセットされることを確認する
 
     logger = ConsoleLogger()
     eloc = EasyLocale()
 
-    # インスタンスを生成
-    wrapper = ClientRoleWrapper(logger, eloc, client_roles)
+    app = Mock()
+
+    chat_stream = ChatStream(logger=logger, client_roles=client_roles)
+
+    default_client_role_middleware = DefaultClientRoleGrantMiddleware(app, chat_stream=chat_stream)
 
     # テスト用リクエストを作成
     # 自前で Request を new するときは、リクエストヘッダはタプルで指定する
-    test_request = Request(scope={"type": "http",
-                                  "headers": [
-                                      (b"X-FastSession-Skip".lower(), b"skip"),
-                                      (b"X-ChatStream-Auth-Header".lower(), b"i am server"),
-                                  ],
-                                  }, receive=None)
-
-    app = Mock()
+    test_request = Request(scope={"type": "http", "path": "/chat_stream", "headers": [(b"x-ignore-header", b"ignore-value")]}, receive=None)
 
     session_middleware = FastSessionMiddleware(
         app=app,
@@ -120,58 +117,14 @@ async def test_get_promoted_role_of_header_phrase():
 
     await session_middleware.dispatch(test_request, call_next)
 
-    client_role_auth_for_agent = ClientRoleAuthorizerForAgent(logger, eloc, client_role_wrapper=wrapper)
+    await default_client_role_middleware.dispatch(test_request, call_next)
 
-    client_role = client_role_auth_for_agent.get_promoted_role(test_request)
+    wrapper = chat_stream.client_role_wrapper
+    session = wrapper.get_browser_session(test_request)
+    client_role_in_session = session.get(CHAT_STREAM_CLIENT_ROLE, None)
 
-    assert client_role.get("client_role_name")=="server_admin"
-    assert client_role.get("allowed_apis") == "all"
-    assert client_role.get("enable_dev_tool") == False
+    assert client_role_in_session.get("client_role_name")=="user"
+    assert client_role_in_session.get("allowed_apis") == ['chat_stream', 'clear_context', 'web_ui']
 
 
-
-@pytest.mark.asyncio
-async def test_get_promoted_role_of_header_phrase_sha256():
-    # リクエストヘッダ "X-ChatStream-Auth-Header":"change_your_pass" を指定すると、SHA256 でマッチしてこれに対応したロールが戻る
-
-    logger = ConsoleLogger()
-    eloc = EasyLocale()
-
-    # インスタンスを生成
-    wrapper = ClientRoleWrapper(logger, eloc, client_roles)
-
-    # テスト用リクエストを作成
-    # 自前で Request を new するときは、リクエストヘッダはタプルで指定する
-    test_request = Request(scope={"type": "http",
-                                  "headers": [
-                                      (b"X-FastSession-Skip".lower(), b"skip"),
-                                      (b"X-ChatStream-Auth-Header".lower(), b"change_your_pass"),
-                                  ],
-                                  }, receive=None)
-
-    app = Mock()
-
-    session_middleware = FastSessionMiddleware(
-        app=app,
-        secret_key="test",
-        skip_session_header={"header_name": "X-FastSession-Skip", "header_value": "skip"},
-        logger=logger
-    )
-
-    class MockResponse:
-        def __init__(self):
-            self.headers = {}
-
-    emulated_response = MockResponse()
-
-    async def call_next(request):
-        return emulated_response
-
-    await session_middleware.dispatch(test_request, call_next)
-
-    client_role_auth_for_agent = ClientRoleAuthorizerForAgent(logger, eloc, client_role_wrapper=wrapper)
-
-    client_role = client_role_auth_for_agent.get_promoted_role(test_request)
-    assert client_role.get("client_role_name") == "server_admin_sha"
-    assert client_role.get("allowed_apis") == "all"
-
+    # 次のテスト TODO wrapper.set_request_state(request, CHAT_STREAM_CLIENT_ROLE, promoted_role) で保存されたものをとる

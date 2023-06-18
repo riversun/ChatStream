@@ -271,7 +271,7 @@ async def test_get_agent_special_roles():
     # インスタンスを生成
     wrapper = ClientRoleWrapper(logger, eloc, client_roles)
 
-    agent_roles = wrapper.get_agent_special_roles()
+    agent_roles = wrapper.get_agent_special_role_defs()
 
     assert agent_roles == [('server_admin'
                             , {'apis': {'allow': 'all', 'auth_method': 'header_phrase', 'header_phrase': 'i am server', 'use_session': False}}),
@@ -288,7 +288,7 @@ async def test_get_browser_special_roles():
     # インスタンスを生成
     wrapper = ClientRoleWrapper(logger, eloc, client_roles)
 
-    browser_roles = wrapper.get_browser_special_roles()
+    browser_roles = wrapper.get_browser_special_role_defs()
     assert browser_roles == [('developer',
                               {'apis':
                                    {'allow': ['chat_stream', 'clear_context', 'web_ui', 'get_prompt', 'set_generation_params'], 'auth_method': 'ui_pass_phrase',
