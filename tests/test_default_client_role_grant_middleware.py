@@ -10,6 +10,9 @@ from chatstream.access_control.client_role_wrapper import ClientRoleWrapper
 from chatstream.access_control.default_client_role_grant_middleware import DefaultClientRoleGrantMiddleware
 from chatstream.easy_locale import EasyLocale
 
+# TODO セッションに既に、ロールが格納されているときには、デフォルトロールの上書きをしないことを確認するUTの実装
+# session[CHAT_STREAM_CLIENT_ROLE] = {"client_role_name": role_name, "allowed_apis": allowed_apis, "enable_dev_tool": enable_dev_tool}
+
 
 class ConsoleLogger:
     def info(self, str):

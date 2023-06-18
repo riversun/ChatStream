@@ -86,9 +86,9 @@ class DefaultClientRoleGrantMiddleware(BaseHTTPMiddleware):
         session = self.client_role_wrapper.get_browser_session(request)
 
         # セッションに現在のロール名があるかどうか確認
-        crr_role_name = session.get("client_role_name")
+        crr_role = session.get(CHAT_STREAM_CLIENT_ROLE)
 
-        if crr_role_name is None:
+        if crr_role is None:
             # - 今アクセスしているブラウザクライアントに現在のロールがセットされていないとき
             browser_default_client_role = self.client_role_wrapper.get_browser_default_client_role()
             default_role_exists = browser_default_client_role.get("enabled", False)
@@ -124,8 +124,8 @@ class DefaultClientRoleGrantMiddleware(BaseHTTPMiddleware):
             self.logger.debug(
                 self.eloc.to_str(
                     {
-                        "en": f"{req_id(request)} Browser client requesting {request.url} User has privileges for role '{crr_role_name}'. Allowed APIs are '{allowed_apis}'.",
-                        "ja": f"{req_id(request)} ブラウザクライアントは {request.url}へのリクエスト中 クライアントは既にロール '{crr_role_name}' の権限を保有しています。許可された API は '{allowed_apis}' となります"}))
+                        "en": f"{req_id(request)} Browser client requesting {request.url} User has privileges for role '{crr_role}'. Allowed APIs are '{allowed_apis}'.",
+                        "ja": f"{req_id(request)} ブラウザクライアントは {request.url}へのリクエスト中 クライアントは既にロール '{crr_role}' の権限を保有しています。許可された API は '{allowed_apis}' となります"}))
 
     async def grant_agent_default_role(self, request):
         """
