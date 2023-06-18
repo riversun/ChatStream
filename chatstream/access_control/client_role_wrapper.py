@@ -90,6 +90,20 @@ class ClientRoleWrapper:
 
         request.state.__chatstream__[key] = value
 
+    def get_request_state(self, request, key, default_value):
+        """
+        ChatStream 用の request.state から値を取り出す
+        :param request:
+        :param key:
+        :param value:
+        :return:
+        """
+        if not hasattr(request.state, "__chatstream__"):
+            request.state.__chatstream__ = {}
+
+        return request.state.__chatstream__.get(key,default_value)
+
+
     def verify(self):
         """
         定義済「クライアントロール」リストが妥当か否かを確認する。

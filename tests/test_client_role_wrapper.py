@@ -156,6 +156,12 @@ async def test_client_role_wrapper():
     role2 = wrapper.get_agent_current_client_role(test_request)
     assert role2.get("client_role_name") == "example_role"
 
+    stored = wrapper.get_request_state(test_request, key, None)
+    assert stored == value
+
+    stored_2 = wrapper.get_request_state(test_request, "unknown_key", None)
+    assert stored_2 is None
+
 
 def test_verify_success():
     # 正常系のテストケース
