@@ -16,8 +16,11 @@ class ClientRoleWrapper:
         self.eloc = eloc
         self.client_roles = client_roles
 
-        self.browser_default_client_role = None
-        self.agent_default_client_role = None
+        self.browser_default_client_role = None  # ブラウザ向けのデフォルトロールをキャッシュしておく
+        self.agent_default_client_role = None  # エージェント向けのデフォルトロールをキャッシュしておく
+
+        self.browser_client_roles_without_default = None
+        self.agent_client_roles_without_default = None  # エージェント向けロール(デフォルトロール以外)をキャッシュしておく
 
     def is_use_client_role_based_access_control(self):
         """
@@ -95,7 +98,6 @@ class ClientRoleWrapper:
         :return:
         """
 
-
         is_browser_default_role_found = False
         is_agent_default_role_found = False
         for role in self.client_roles.items():
@@ -117,7 +119,6 @@ class ClientRoleWrapper:
                             raise ValueError(f"Invalid API name '{val}' in allow list. Allowed values are 'all' or any of {DefaultApiNames.API_NAMES}")
                 else:
                     raise TypeError("Invalid type for allow. Expected 'all' or list of API names.")
-
 
             if auth_method == "nothing" and use_session:  # デフォルトロール("nothing") かつ セッションあり(=ブラウザ用)
                 # デフォルトロールがみつかったので、例外を投げずに戻る
@@ -142,7 +143,6 @@ class ClientRoleWrapper:
                 "en": f"Default role for browser not defined.",
                 "ja": f"ブラウザー用のデフォルトロールが定義されていません。"}))
             raise Exception(f"browser based default client role not found.Please specify default client role for browser.")
-
 
         if not is_agent_default_role_found:
             # サーバー用のデフォルトロールが定義されていないとき
@@ -238,3 +238,57 @@ class ClientRoleWrapper:
         self.agent_default_client_role = out
 
         return out
+
+    def get_agent_special_roles(self):
+        """
+        エージェント用のロールを取得する
+        ・セッション無効のもの
+        ・デフォルトロールは含めない
+
+        :return:
+        """
+
+        if self.agent_client_roles_without_default is None:
+            roles = []
+            for role in self.client_roles.items():
+                role_name = role[0]
+                role_contents = role[1]
+                apis = role_contents.get("apis")
+                allow = apis.get("allow")
+                auth_method = apis.get("auth_method")
+                use_session = apis.get("use_session", False)
+                enable_dev_tool = apis.get("enable_dev_tool", False)
+
+                if auth_method != "nothing" and not use_session:  # デフォルトロール("nothing") かつ セッションなし(=プログラムからのアクセス用)
+                    roles.append(role)
+
+            self.agent_client_roles_without_default = roles
+
+        return self.agent_client_roles_without_default
+
+    def get_browser_special_roles(self):
+        """
+        ブラウザクライアント用のロールを取得する
+        ・セッション有効のもの
+        ・デフォルトロールは含めない
+
+        :return:
+        """
+
+        if self.browser_client_roles_without_default is None:
+            roles = []
+            for role in self.client_roles.items():
+                role_name = role[0]
+                role_contents = role[1]
+                apis = role_contents.get("apis")
+                allow = apis.get("allow")
+                auth_method = apis.get("auth_method")
+                use_session = apis.get("use_session", False)
+                enable_dev_tool = apis.get("enable_dev_tool", False)
+
+                if auth_method != "nothing" and use_session:  # デフォルトロール("nothing") かつ セッションなし(=プログラムからのアクセス用)
+                    roles.append(role)
+
+            self.browser_client_roles_without_default = roles
+
+        return self.browser_client_roles_without_default

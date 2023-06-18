@@ -49,7 +49,7 @@ client_roles = {
             "allow": "all",
             "auth_method": "ui_pass_phrase",
             "ui_pass_phrase": "admin mode",
-
+            "use_session": True,
         },
     },
     "server_default": {
@@ -64,6 +64,14 @@ client_roles = {
             "allow": "all",
             "auth_method": "header_phrase",
             "header_phrase": "i am server",
+            "use_session": False,  # サーバーの場合はセッション使わない
+        },
+    },
+    "server_admin_sha": {
+        "apis": {
+            "allow": "all",
+            "auth_method": "header_phrase_sha256",
+            "header_phrase": "597d7fb99ab9ce00b59918f425031c296371e1af9848071c156be7e54916d84c",  # change_your_pass
             "use_session": False,  # サーバーの場合はセッション使わない
         },
     }
@@ -253,3 +261,38 @@ def test_verify_default_role_no_session():
     wrapper.verify()
 
     assert wrapper.verify() == True
+
+
+@pytest.mark.asyncio
+async def test_get_agent_special_roles():
+    logger = ConsoleLogger()
+    eloc = EasyLocale()
+
+    # インスタンスを生成
+    wrapper = ClientRoleWrapper(logger, eloc, client_roles)
+
+    agent_roles = wrapper.get_agent_special_roles()
+
+    assert agent_roles == [('server_admin'
+                            , {'apis': {'allow': 'all', 'auth_method': 'header_phrase', 'header_phrase': 'i am server', 'use_session': False}}),
+                           ('server_admin_sha',
+                            {'apis': {'allow': 'all', 'auth_method': 'header_phrase_sha256',
+                                      'header_phrase': '597d7fb99ab9ce00b59918f425031c296371e1af9848071c156be7e54916d84c', 'use_session': False}})]
+
+
+@pytest.mark.asyncio
+async def test_get_browser_special_roles():
+    logger = ConsoleLogger()
+    eloc = EasyLocale()
+
+    # インスタンスを生成
+    wrapper = ClientRoleWrapper(logger, eloc, client_roles)
+
+    browser_roles = wrapper.get_browser_special_roles()
+    assert browser_roles == [('developer',
+                              {'apis':
+                                   {'allow': ['chat_stream', 'clear_context', 'web_ui', 'get_prompt', 'set_generation_params'], 'auth_method': 'ui_pass_phrase',
+                                    'ui_pass_phrase': 'dev mode', 'use_session': True, 'enable_dev_tool': True}}),
+                             ('admin',
+                              {'apis':
+                                   {'allow': 'all', 'auth_method': 'ui_pass_phrase', 'ui_pass_phrase': 'admin mode', 'use_session': True}})]
