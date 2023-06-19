@@ -1,5 +1,6 @@
 from starlette.requests import Request
 
+from chatstream.access_control.client_role_authorizer_for_agent import ClientRoleAuthorizerForAgent
 from chatstream.access_control.default_client_role_grant_middleware import CHAT_STREAM_CLIENT_ROLE
 
 
@@ -22,6 +23,7 @@ class ClientRoleFinalizer:
         self.logger = logger
         self.eloc = eloc
         self.client_role_wrapper = client_role_wrapper
+        self.agent_client_role_authorizer = ClientRoleAuthorizerForAgent(logger, eloc, client_role_wrapper=client_role_wrapper)  # リクエストヘッダーを分析し、昇格できるロールを返す
 
     def set_final_role(self, request: Request):
         is_browser_client_access = self.client_role_wrapper.is_browser_client_access(request)
@@ -54,11 +56,25 @@ class ClientRoleFinalizer:
         # 最終的に request.state に保存する
         wrapper.set_request_state(request, CHAT_STREAM_CLIENT_ROLE, crr_role)
 
-
     def handle_agent_client_access(self, request: Request):
         """
-
+        エージェントクライアントからのアクセスを処理する
         :param request:
         :return:
         """
-        pass
+
+        # エージェントクライアントの昇格を行う
+        self.promote_agent_client_if_needed(request)
+
+    def promote_agent_client_if_needed(self, request: Request):
+        """
+        エージェントクライアントの昇格を行う
+        :param request:
+        :return:
+        """
+        wrapper = self.client_role_wrapper
+        promoted_role = self.agent_client_role_authorizer.get_promoted_role(request)
+        if promoted_role:
+            # ヘッダを解析した結果、新しいロールが存在したとき
+            # 新しいロール(promoted_role) をセットする
+            wrapper.set_request_state(request, CHAT_STREAM_CLIENT_ROLE, promoted_role)
