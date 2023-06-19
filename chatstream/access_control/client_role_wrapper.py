@@ -23,6 +23,9 @@ class ClientRoleWrapper:
         self.browser_client_roles_without_default = None
         self.agent_client_role_defs_without_default = None  # エージェント向けロール(デフォルトロール以外)をキャッシュしておく
 
+        if self.client_roles is not None:
+            self.verify()
+
     def is_use_client_role_based_access_control(self):
         """
         ロールベースのアクセスコントロールを使用するか否か
