@@ -44,6 +44,10 @@ class ClientRoleAuthorizerForAgent:
             if auth_method == "header_phrase":
 
                 request_auth_header_text = request.headers.get("X-ChatStream-Auth-Header")
+                if request_auth_header_text is None:
+
+                    return None
+
                 header_phrase = apis.get("header_phrase")
                 if request_auth_header_text == header_phrase:  # 認可処理
                     self.logger.debug(f"auth_method:{auth_method} matched and role_name:'{role_name}' resolved")
@@ -52,8 +56,13 @@ class ClientRoleAuthorizerForAgent:
 
             elif auth_method == "header_phrase_sha256":
                 request_auth_header_text = request.headers.get("X-ChatStream-Auth-Header")
+
+                if request_auth_header_text is None:
+                    return None
+
                 header_phrase_encoded = apis.get("header_phrase")
                 request_auth_header_encoded = hashlib.sha256(request_auth_header_text.encode()).hexdigest()
+
                 if request_auth_header_encoded == header_phrase_encoded:  # 認可処理
                     self.logger.debug(f"auth_method:{auth_method} matched and role_name:'{role_name}' resolved")
                     client_role = role_def_to_client_role(role_def)

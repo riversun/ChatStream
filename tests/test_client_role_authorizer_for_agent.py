@@ -129,6 +129,54 @@ async def test_get_promoted_role_of_header_phrase():
     assert client_role.get("enable_dev_tool") == False
 
 
+@pytest.mark.asyncio
+async def test_get_promoted_role_of_header_phrase_when_header_less():
+    # リクエストヘッダ なしのときは client_role は None
+
+    logger = ConsoleLogger()
+    eloc = EasyLocale()
+
+    # インスタンスを生成
+    wrapper = ClientRoleWrapper(logger, eloc, client_roles)
+
+    # テスト用リクエストを作成
+    # 自前で Request を new するときは、リクエストヘッダはタプルで指定する
+    test_request = Request(scope={"type": "http",
+                                  "headers": [
+                                      (b"X-FastSession-Skip".lower(), b"skip"),
+
+                                  ],
+                                  }, receive=None)
+
+    app = Mock()
+
+    session_middleware = FastSessionMiddleware(
+        app=app,
+        secret_key="test",
+        skip_session_header={"header_name": "X-FastSession-Skip", "header_value": "skip"},
+        logger=logger
+    )
+
+    class MockResponse:
+        def __init__(self):
+            self.headers = {}
+
+    emulated_response = MockResponse()
+
+    async def call_next(request):
+        return emulated_response
+
+    await session_middleware.dispatch(test_request, call_next)
+
+    client_role_auth_for_agent = ClientRoleAuthorizerForAgent(logger, eloc, client_role_wrapper=wrapper)
+
+    client_role = client_role_auth_for_agent.get_promoted_role(test_request)
+
+    assert client_role is None
+
+
+
+
 
 @pytest.mark.asyncio
 async def test_get_promoted_role_of_header_phrase_sha256():
@@ -175,3 +223,52 @@ async def test_get_promoted_role_of_header_phrase_sha256():
     assert client_role.get("client_role_name") == "server_admin_sha"
     assert client_role.get("allowed_apis") == "all"
 
+
+
+
+
+
+@pytest.mark.asyncio
+async def test_get_promoted_role_of_header_phrase_sha256_when_header_less():
+    # リクエストヘッダなしのときは client_role は None
+
+    logger = ConsoleLogger()
+    eloc = EasyLocale()
+
+    # インスタンスを生成
+    wrapper = ClientRoleWrapper(logger, eloc, client_roles)
+
+    # テスト用リクエストを作成
+    # 自前で Request を new するときは、リクエストヘッダはタプルで指定する
+    test_request = Request(scope={"type": "http",
+                                  "headers": [
+                                      (b"X-FastSession-Skip".lower(), b"skip"),
+
+                                  ],
+                                  }, receive=None)
+
+    app = Mock()
+
+    session_middleware = FastSessionMiddleware(
+        app=app,
+        secret_key="test",
+        skip_session_header={"header_name": "X-FastSession-Skip", "header_value": "skip"},
+        logger=logger
+    )
+
+    class MockResponse:
+        def __init__(self):
+            self.headers = {}
+
+    emulated_response = MockResponse()
+
+    async def call_next(request):
+        return emulated_response
+
+    await session_middleware.dispatch(test_request, call_next)
+
+    client_role_auth_for_agent = ClientRoleAuthorizerForAgent(logger, eloc, client_role_wrapper=wrapper)
+
+    client_role = client_role_auth_for_agent.get_promoted_role(test_request)
+
+    assert client_role is None
