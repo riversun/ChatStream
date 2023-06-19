@@ -26,6 +26,14 @@ class ClientRoleFinalizer:
         self.agent_client_role_authorizer = ClientRoleAuthorizerForAgent(logger, eloc, client_role_wrapper=client_role_wrapper)  # リクエストヘッダーを分析し、昇格できるロールを返す
 
     def set_final_role(self, request: Request):
+        """
+        ロールを確定させる
+
+        ・ブラウザクライアントの場合は、セッションに保存されている最新（最終）のクライアントロールを request.state 以下に保存する
+        ・エージェントクライアントの場合は、昇格判定を行い、最終的なクライアントロールを request.state 以下に保存する
+        :param request:
+        :return:
+        """
         is_browser_client_access = self.client_role_wrapper.is_browser_client_access(request)
         is_agent_client_access = self.client_role_wrapper.is_agent_client_access(request)
         if is_browser_client_access:
