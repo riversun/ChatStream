@@ -39,7 +39,7 @@ client_roles = {
         "apis": {
             "allow": ["chat_stream",
                       "clear_context",
-                      "web_ui",
+
                       "get_prompt",
                       "set_generation_params",
                       ],

@@ -24,7 +24,7 @@ class ConsoleLogger:
 client_roles = {
     "user": {
         "apis": {
-            "allow": ["chat_stream", "clear_context", "web_ui"],
+            "allow": ["chat_stream", "clear_context"],
             "auth_method": "nothing",
             "use_session": True,  # セッションベースの認証
         }
@@ -33,7 +33,7 @@ client_roles = {
         "apis": {
             "allow": ["chat_stream",
                       "clear_context",
-                      "web_ui",
+
                       "get_prompt",
                       "set_generation_params",
                       ],
@@ -128,7 +128,7 @@ async def test_client_role_wrapper():
     browser_role = wrapper.get_browser_default_client_role()
     assert browser_role['enabled'] == True
     assert browser_role['client_role_name'] == 'user'
-    assert browser_role['allowed_apis'] == ['chat_stream', 'clear_context', 'web_ui']
+    assert browser_role['allowed_apis'] == ['chat_stream', 'clear_context']
     assert browser_role['enable_dev_tool'] == False
 
     # エージェントクライアント用のデフォルトロールを取得
@@ -193,10 +193,9 @@ def test_verify_invalid_allow():
     }
     logger = ConsoleLogger()
     eloc = EasyLocale()
-    wrapper = ClientRoleWrapper(logger, eloc, client_roles=client_roles)
 
     with pytest.raises(ValueError):
-        wrapper.verify()
+        wrapper = ClientRoleWrapper(logger, eloc, client_roles=client_roles)
 
 
 def test_verify_no_default_role():
@@ -204,7 +203,7 @@ def test_verify_no_default_role():
     client_roles = {
         "user": {
             "apis": {
-                "allow": ["chat_stream", "clear_context", "web_ui"],
+                "allow": ["chat_stream", "clear_context"],
                 "auth_method": "some_method",
                 "use_session": True,
             }
@@ -212,10 +211,11 @@ def test_verify_no_default_role():
     }
     logger = ConsoleLogger()
     eloc = EasyLocale()
-    wrapper = ClientRoleWrapper(logger, eloc, client_roles=client_roles)
+
 
     with pytest.raises(Exception):
-        wrapper.verify()
+        wrapper = ClientRoleWrapper(logger, eloc, client_roles=client_roles)
+
 
 
 def test_verify_multiple_default_roles():
@@ -223,14 +223,14 @@ def test_verify_multiple_default_roles():
     client_roles = {
         "user": {
             "apis": {
-                "allow": ["chat_stream", "clear_context", "web_ui"],
+                "allow": ["chat_stream", "clear_context"],
                 "auth_method": "nothing",
                 "use_session": True,
             }
         },
         "user2": {
             "apis": {
-                "allow": ["chat_stream", "clear_context", "web_ui"],
+                "allow": ["chat_stream", "clear_context"],
                 "auth_method": "nothing",
                 "use_session": True,
             }
@@ -238,10 +238,9 @@ def test_verify_multiple_default_roles():
     }
     logger = ConsoleLogger()
     eloc = EasyLocale()
-    wrapper = ClientRoleWrapper(logger, eloc, client_roles=client_roles)
 
     with pytest.raises(Exception):
-        wrapper.verify()
+        wrapper = ClientRoleWrapper(logger, eloc, client_roles=client_roles)
 
 
 def test_verify_default_role_no_session():
@@ -297,7 +296,7 @@ async def test_get_browser_special_roles():
     browser_roles = wrapper.get_browser_special_role_defs()
     assert browser_roles == [('developer',
                               {'apis':
-                                   {'allow': ['chat_stream', 'clear_context', 'web_ui', 'get_prompt', 'set_generation_params'], 'auth_method': 'ui_pass_phrase',
+                                   {'allow': ['chat_stream', 'clear_context', 'get_prompt', 'set_generation_params'], 'auth_method': 'ui_pass_phrase',
                                     'ui_pass_phrase': 'dev mode', 'use_session': True, 'enable_dev_tool': True}}),
                              ('admin',
                               {'apis':

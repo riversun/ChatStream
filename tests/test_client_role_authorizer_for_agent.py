@@ -27,7 +27,7 @@ from chatstream.access_control.default_client_role_grant_middleware import CHAT_
 client_roles = {
     "user": {
         "apis": {
-            "allow": ["chat_stream", "clear_context", "web_ui"],
+            "allow": ["chat_stream", "clear_context",],
             "auth_method": "nothing",
             "use_session": True,  # セッションベースの認証
         }
@@ -36,7 +36,7 @@ client_roles = {
         "apis": {
             "allow": ["chat_stream",
                       "clear_context",
-                      "web_ui",
+
                       "get_prompt",
                       "set_generation_params",
                       ],

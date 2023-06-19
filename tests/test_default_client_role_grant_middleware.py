@@ -28,7 +28,7 @@ class ConsoleLogger:
 client_roles = {
     "user": {
         "apis": {
-            "allow": ["chat_stream", "clear_context", "web_ui"],
+            "allow": ["chat_stream", "clear_context", ],
             "auth_method": "nothing",
             "use_session": True,  # セッションベースの認証
         }
@@ -37,7 +37,7 @@ client_roles = {
         "apis": {
             "allow": ["chat_stream",
                       "clear_context",
-                      "web_ui",
+
                       "get_prompt",
                       "set_generation_params",
                       ],
@@ -134,7 +134,7 @@ async def test_handling_browser_client_role_access():
     client_role_in_session = session.get("chat_stream_client_role", None)
 
     assert client_role_in_session.get("client_role_name") == "user"
-    assert client_role_in_session.get("allowed_apis") == ['chat_stream', 'clear_context', 'web_ui']
+    assert client_role_in_session.get("allowed_apis") == ['chat_stream', 'clear_context']
     assert client_role_in_session.get("enable_dev_tool") == False
 
 
