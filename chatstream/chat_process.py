@@ -2,6 +2,7 @@ from typing import Generator
 
 from .chat_prompt import AbstractChatPrompt
 from .chat_core import process_chat
+from .default_finish_token import DEFAULT_FINISH_TOKEN
 from .merge_dic import merge_dict
 import asyncio
 
@@ -19,9 +20,6 @@ class ChatGenerator:
         self.device = device
         self.params = params
 
-        # self.tflow_for_updated_text = None
-        # self.tflow_for_response_text = None
-
     async def generate(self, chat_prompt: AbstractChatPrompt, opts: dict = {}) -> Generator:
         """
         chat_prompt として入力された会話履歴データをもとに、 L{process_chat} に文章生成を指示し
@@ -30,9 +28,7 @@ class ChatGenerator:
         1. 生成済文章全体(response_text)
         2. 新規生成(updated_text)
         3. 現在のトークン位置
-        
 
-        
         :param chat_prompt: 会話履歴を含む ChatPrompt オブジェクト
         :param opts: 
             出力タイプ(output_type の指定):
@@ -51,7 +47,6 @@ class ChatGenerator:
 
         output_replacement = chat_prompt.get_replacement_when_output()  # 出力の置換
 
-        # if output_replacement is not None and self.tflow_for_updated_text is None:
         if output_replacement is not None:
             tflow_for_updated_text = TokFlow(output_replacement)
             tflow_for_response_text = TokFlow(output_replacement)
@@ -136,9 +131,10 @@ class ChatGenerator:
             if otype == "updated_text":
                 yield updated_text_to_disp
             elif otype == "response_text":
-                yield response_text_to_disp
+                yield response_text_to_disp + DEFAULT_FINISH_TOKEN
             else:
-                yield response_text_to_disp, updated_text_to_disp, pos
+                yield response_text_to_disp + DEFAULT_FINISH_TOKEN, updated_text_to_disp, pos
+
             await asyncio.sleep(0.01)  # わずかな遅延を発生させ、逐次返信となるようにする
             prev = response_text
 
@@ -176,9 +172,9 @@ class ChatGenerator:
         if otype == "updated_text":
             yield updated_text_to_disp
         elif otype == "response_text":
-            yield response_text_to_disp
+            yield response_text_to_disp + DEFAULT_FINISH_TOKEN
         else:
-            yield updated_text_to_disp, response_text_to_disp, pos
+            yield updated_text_to_disp, response_text_to_disp + DEFAULT_FINISH_TOKEN, pos
 
         if post_process_callback is not None:
             # 逐次出力がすべて終了したので、成功をコールバックする
