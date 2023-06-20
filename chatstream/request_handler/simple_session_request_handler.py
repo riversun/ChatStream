@@ -1,21 +1,22 @@
 import json
+import traceback
 
 from fastapi import Request
 from fastapi.responses import StreamingResponse
 from starlette.responses import JSONResponse
 
 from .request_handler import AbstractRequestHandler
-
 from ..util_request_id import req_id
-import traceback
 
 
 class SimpleSessionRequestHandler(AbstractRequestHandler):
     """
-    FastAPI/Starlette の Request を処理し、 chat_prompt(会話履歴を含むプロンプト) を  HTTPセッション に格納するリクエストハンドラ
+    FastAPI/Starlette の Request を処理し、 chat_prompt(会話履歴) を  HTTPセッション に格納するリクエストハンドラ
 
-    HTTPセッションの物理的格納先はデフォルトではオンメモリを想定しているが、
-    アプリケーション側でミドルウェアにオンメモリ以外のセッションストレージを指定した場合はこの限りではない。
+    リクエストハンドラは chat_prompt をどこに保存するか、によって実装される。
+    本リクエストハンドラは chat_prompt をセッションに保存するための実装となる。
+    関連して、ブラウザからのアクセス時のロール情報の保持は、 chat_prompt の置き場とは無関係に、
+    一時的にセッションに保存される。
     """
 
     def __init__(self, session_attr_name="session"):
@@ -55,29 +56,36 @@ class SimpleSessionRequestHandler(AbstractRequestHandler):
                 self.logger.debug(self.eloc.to_str(
                     {"en": f"{req_id(request)} Since chat_prompt does not exist in the session, create a new one.",
                      "ja": f"'{req_id(request)} chat_prompt がセッションに存在しないので、新規生成します"}))
+
                 chat_prompt = self.chat_prompt_clazz()  # ChatPrompt をインスタンス化する
 
                 chat_prompt.build_initial_prompt(chat_prompt)  # 初期プロンプトを生成する
 
                 # 会話履歴をセッションに保持する
                 session["chat_prompt"] = chat_prompt
+                session_mgr.save_session()  # .save_session("chat_prompt")
 
             chat_prompt = session.get("chat_prompt")
 
             if request_body is not None:
                 # request_body が明示的に指定された場合
-                # request はストリームで提供されるため、どこかで読み取ると consume されてしまう。
-                # そこで、もしどこかでインターセプトしてリクエストされたデータを使いたい場合は
-                # インターセプト元で request_body をキャッシュし、再度指定して chatstream を呼び出すことで
-                # request が consume されていても処理を先に進めることができる
+
                 self.logger.debug(self.eloc.to_str({
                     "en": f"{req_id(request)} Since request_body is specified, the request data is retrieved from it. The request may have been intercepted by the Web API front-end.",
                     "ja": f"'{req_id(request)} request_body が指定されているため、そこからリクエストデータを取得します。リクエストが Web API のフロント処理でインターセプトされた可能性があります。"}))
+
+                # request はストリームで提供されるため、どこかで読み取ると consume されてしまう。
+                # そこで、もしどこかでインターセプトしてリクエストされたデータを使いたい場合は
+                # インターセプト元で request_body をキャッシュし、再度指定して chatstream を呼び出すことでrequest が consume されていても処理を先に進めることができる
                 data = json.loads(request_body)
             else:
                 data = await request.json()
 
-            user_input = data.get("user_input", None)
+            user_input = data.get("user_input", None)  # ユーザーの入力テキスト
+
+            local_reponse = self.detect_special_command_for_role_promotion(request, user_input, streaming_finished_callback)
+            if local_reponse is not None:
+                return local_reponse
 
             # 入力オブジェクトから "regenerate" パラメータを取得する。(True/False)
             need_regenerate = self.get_bool_from_dict(data, "regenerate")
@@ -135,9 +143,7 @@ class SimpleSessionRequestHandler(AbstractRequestHandler):
                         self.eloc.to_str({"en": f"{req_id(request)} Saved session content",
                                           "ja": f"'{req_id(request)} セッション内容を保存しました"}))
                 elif message == "client_disconnected_while_streaming":
-                    # クライアントに対して、文章ストリーミングを送出中に
-                    # ネットワークエラーまたは、クライアントから明示的に切断された
-                    #
+                    # クライアントに対して、文章ストリーミングを送出中にネットワークエラーまたは、クライアントから明示的に切断されたとき
                     session_mgr.save_session()
 
                     self.logger.debug(
@@ -174,7 +180,7 @@ class SimpleSessionRequestHandler(AbstractRequestHandler):
                 "ja": f"'{req_id(request)} リクエストハンドラ実行中に予期せぬエラーが発生しました {e}\n{traceback.format_exc()}"}))
 
             return await self.return_internal_server_error_response(request, streaming_finished_callback,
-                                                                    "simple session request");
+                                                                    "simple session request")
 
     async def return_internal_server_error_response(self, request, callback, detail):
         """
