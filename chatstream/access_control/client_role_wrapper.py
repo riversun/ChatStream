@@ -261,7 +261,8 @@ class ClientRoleWrapper:
         :return:
         """
 
-        if self.agent_client_role_defs_without_default is None:
+        if self.agent_client_role_defs_without_default is None and self.client_roles is not None:
+            # エージェントクライアント用のロール定義(デフォルトロール以外)のキャッシュがまだない場合
             role_defs = []
             for role_def in self.client_roles.items():
                 role_name = role_def[0]
