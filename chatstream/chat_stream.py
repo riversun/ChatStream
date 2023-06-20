@@ -12,16 +12,19 @@ from fastapi import Request, Response
 from starlette.requests import ClientDisconnect
 from starlette.responses import JSONResponse
 
+from .access_control.client_role_verifier import ClientRoleVerifier
+from .access_control.client_role_wrapper import ClientRoleWrapper
 from .chat_process import ChatGenerator
 from .chat_process_mock import ChatGeneratorMock
 from .chat_stream_api_appender import append_apis
+from .easy_locale import EasyLocale
 from .merge_dic import merge_dict
 from .request_handler.simple_session_request_handler import SimpleSessionRequestHandler
 from .resource_usage import get_resource_usage
+
 from .util_ensure_torch_device import ensure_torch_device
 from .util_request_id import req_id
 from .util_resource_file_response import _send_resource
-from .easy_locale import EasyLocale
 
 
 class ChatStream:
@@ -46,34 +49,33 @@ class ChatStream:
                  repetition_penalty_method="multiplicative",  # Calculation method for repetition penalty
                  add_special_tokens=None,  # Options for the tokenizer
                  request_handler=SimpleSessionRequestHandler(),  # Request handler. By default, a handler that simply keeps the session is default
-
                  logger=None,  # logging object
                  locale=None,  # locale for logging
-
-                 allow_clear_context=True,  # Allow clearing context
-                 allow_get_prompt=False,  # Allow get prompt
-                 allow_get_load=False,  # allow to get load information
-                 allow_set_generation_params=False,
-                 allow_web_ui=False,
-                 allow_get_resource_usage=False,
-
+                 client_roles=None,
                  ):
+
+        if client_roles is None:
+            client_roles = {
+                "user": {
+                    "apis": {
+                        "allow": ["chat_stream", "clear_context"],
+                        "auth_method": "nothing",  # default role
+                        "use_session": True,
+                    }
+                }}
 
         self.eloc = EasyLocale({"locale": locale})
         self.queue_worker_task = None
         self.name = name
         self.device = ensure_torch_device(device)
-        self.allow_set_generation_params = allow_set_generation_params
-        self.allow_web_ui = allow_web_ui
-        self.allow_get_load = allow_get_load
-        self.allow_get_prompt = allow_get_prompt
-        self.allow_clear_context = allow_clear_context
-        self.allow_get_resource_usage = allow_get_resource_usage
 
         self.num_gpus = num_gpus
 
         if self.device is not None and self.device.type != 'cuda':  # not supported 'mps' now
             # cpu が選択された場合
+            self.num_gpus = 0
+
+        if use_mock_response:
             self.num_gpus = 0
 
         if logger is None:
@@ -87,9 +89,15 @@ class ChatStream:
 
         self.logger = logger
 
+        self.client_roles = client_roles
+        self.client_role_wrapper = ClientRoleWrapper(logger=self.logger, eloc=self.eloc, client_roles=client_roles)
+
         self.request_handler = request_handler
         self.request_handler.logger = logger
         self.request_handler.eloc = self.eloc
+        self.request_handler.client_role_wrapper = self.client_role_wrapper
+
+        self.client_role_verifier = ClientRoleVerifier(self)
 
         chat_params = {
             "temperature": temperature,  # 0.7,  # Temperatureの値
@@ -207,7 +215,6 @@ class ChatStream:
                     """
 
                     # message は現在のところ、これより先には通知しない
-                    # この結果を TODO 上位に伝えられるようにする
                     self.concurrent_processing_semaphore.release()  # 同時処理管理セマフォをリリースする Release the concurrent processing semaphore
                     await self.processing_queue.get()  # 現在の request を、リクエスト処理中キューから取り出す Get the current request from the request processing queue
 
@@ -223,7 +230,7 @@ class ChatStream:
                 final_response = None
                 try:
                     # request を処理する。responseは逐次出力を担当する StreamResponse になっているため、
-                    # response を得たあともストリーミングが続いていることを忘れてはいけない
+                    # response を得たあともストリーミングが続いていることを忘れないこと
 
                     self.logger.debug(
                         self.eloc.to_str({
@@ -284,6 +291,19 @@ class ChatStream:
         # 強制終了のシャットダウンハンドラを登録
         signal.signal(signal.SIGINT, lambda s, f: os._exit(0))
 
+    def verify_role_for_api(self, request, api_name):
+        """
+        指定した API 名のロールをみて、そのAPIにアクセス可能かどうか判定する
+        :param request:
+        :param api_name:
+        :return:
+        """
+        verify_result = self.client_role_verifier.verify_client_role(request, api_name)
+        is_verify_success = verify_result.get("success", False)
+        if not is_verify_success:
+            return JSONResponse(status_code=403, content={"success": False, "message": "Forbidden", "detail": "Denied on role layer."})
+        return None
+
     async def handle_chat_stream_request(self, request: Request, request_body=None, callback=None):
         """
         This method performs sequential text generation based on user input received, using a pre-trained language model.
@@ -312,7 +332,10 @@ class ChatStream:
 
         """
 
-        # set_req_id(request)  # ログ内で request の一意性を確認するために簡易idを振る => Deprecate予定（他のエンドポイント)
+        api_name = "chat_stream"
+        verify_error_response = self.verify_role_for_api(request, api_name)
+        if verify_error_response:
+            return verify_error_response
 
         # この request の処理待ち用カウントセマフォをつくる
         this_request_semaphore = asyncio.Semaphore(0)
@@ -370,9 +393,10 @@ class ChatStream:
 
     async def handle_get_resource_usage_request(self, request: Request):
         try:
-
-            if self.allow_get_resource_usage is not True:
-                return JSONResponse(status_code=403, content={"success": False, "message": "Forbidden"})
+            api_name = "get_resource_usage"
+            verify_error_response = self.verify_role_for_api(request, api_name)
+            if verify_error_response:
+                return verify_error_response
 
             memory_usage = get_resource_usage({"num_gpus": self.num_gpus, "device": self.device})
 
@@ -394,16 +418,17 @@ class ChatStream:
     async def handle_clear_context_request(self, request: Request, request_body=None, callback=None):
         """
         コンテクストをクリアする
-        (TODO セッションハンドラーが前提となっているため、 simple_session_request_handler.py に委譲すること)
         :param request:
         :param request_body:
         :param callback:
         :return:
         """
         try:
+            api_name = "clear_context"
 
-            if self.allow_clear_context is not True:
-                return JSONResponse(status_code=403, content={"success": False, "message": "Forbidden"})
+            verify_error_response = self.verify_role_for_api(request, api_name)
+            if verify_error_response:
+                return verify_error_response
 
             session_mgr = getattr(request.state, "session", None)
 
@@ -452,9 +477,10 @@ class ChatStream:
         """
 
         try:
-
-            if self.allow_set_generation_params is not True:
-                return JSONResponse(status_code=403, content={"success": False, "message": "Forbidden"})
+            api_name = "set_generation_params"
+            verify_error_response = self.verify_role_for_api(request, api_name)
+            if verify_error_response:
+                return verify_error_response
 
             generation_params_from_client = await request.json()
 
@@ -489,8 +515,6 @@ class ChatStream:
                 # ユーザーが設定した生成パラメータをセッションに保存
                 session["generation_params"] = user_specified_generation_params;
 
-                # TODO セッション永続化(必要あれば)
-
                 # デフォルト(ChatStream初期化時に指定された)の生成パラメータ
                 crr_params = {
                     "temperature": self.params.get("temperature"),
@@ -523,16 +547,16 @@ class ChatStream:
 
     async def handle_get_generation_params_request(self, request: Request):
         try:
-
-            if self.allow_set_generation_params is not True:
-                return JSONResponse(status_code=403, content={"success": False, "message": "Forbidden"})
+            api_name = "get_generation_params"
+            verify_error_response = self.verify_role_for_api(request, api_name)
+            if verify_error_response:
+                return verify_error_response
 
             session_mgr = getattr(request.state, "session", None)
 
             if session_mgr:
                 # セッションオブジェクト（辞書オブジェクト）を取得する
                 session = session_mgr.get_session()
-                # TODO value validation
 
                 # ユーザーが指定した生成パラメータをセッションに保存
                 session_stored_generation_params = session.get("generation_params", {});
@@ -570,8 +594,10 @@ class ChatStream:
     async def handle_get_prompt_request(self, request: Request):
         try:
 
-            if self.allow_get_prompt is not True:
-                return JSONResponse(status_code=403, content={"success": False, "message": "Forbidden"})
+            api_name = "get_prompt"
+            verify_error_response = self.verify_role_for_api(request, api_name)
+            if verify_error_response:
+                return verify_error_response
 
             session_mgr = getattr(request.state, "session", None)
             if session_mgr:
@@ -610,8 +636,10 @@ class ChatStream:
         """
         Return information about the current processing state (waiting state)
         """
-        if self.allow_get_load is not True:
-            return JSONResponse(status_code=403, content={"success": False, "message": "Forbidden"})
+        api_name = "get_load"
+        verify_error_response = self.verify_role_for_api(request, api_name)
+        if verify_error_response:
+            return verify_error_response
 
         return {
             "success": True,
@@ -629,19 +657,30 @@ class ChatStream:
             ],
         }
 
-    async def index(self, response: Response, opts={}):
+    async def index(self, request: Request, response: Response, opts={}):
+
+        api_name = "webui_index"
+        verify_error_response = self.verify_role_for_api(request, api_name)
+        if verify_error_response:
+            return verify_error_response
 
         ui_init_params = opts.get("ui_init_params", None)
 
         if ui_init_params:
             def replacer(text):
-                return text.replace('const opts = {}', f'const opts = {json.dumps(ui_init_params)}')
+                return text.replace("const opts = {}", f"const opts = {json.dumps(ui_init_params)}")
 
             return _send_resource(file_name="index.html", replacer=replacer, response=response)
         else:
             return _send_resource(file_name="index.html", response=response)
 
-    async def js(self, response: Response):
+    async def js(self, request: Request, response: Response):
+
+        api_name = "web_ui_js"
+        verify_error_response = self.verify_role_for_api(request, api_name)
+        if verify_error_response:
+            return verify_error_response
+
         return _send_resource(file_name="chatstream.js", response=response)
 
     async def handle_console_input(self, user_input: str) -> Generator:
@@ -668,14 +707,14 @@ class ChatStream:
         ChatStreamに関連するWeb APIをFastAPIアプリに追加する。
 
         chat_stream、app、optsを元に、特定のAPIを追加する。各APIは、そのキーが'include'リストに含まれている、
-        'exclude'リストに含まれていない、または'all_apis'がTrueに設定されている場合に有効/無効を切り替えることができる。
+        'exclude'リストに含まれていない、または'all'がTrueに設定されている場合に有効/無効を切り替えることができる。
 
         :param chat_stream: APIリクエストを処理するChatStreamオブジェクト。
         :param app: ルートを追加するFastAPIアプリケーション。
         :param dict opts: 追加するAPIを決定するためのオプションの辞書。キーとその意味は次の通り：
             "include": 明示的に含めるAPI名のリスト。
             "exclude": 明示的に除外するAPI名のリスト。
-            "all_apis": すべてのAPIを含めるかどうかを決定するブール値。デフォルトはFalse。
+            "all": すべてのAPIを含めるかどうかを決定するブール値。デフォルトはFalse。
 
         有効にするAPI名リスト（'include'または'exclude'に入れる）:
             "get_prompt": 有効にすると、現在のプロンプトを取得するAPIが追加される。
@@ -684,7 +723,7 @@ class ChatStream:
             "get_load": 有効にすると、チャットストリームの現在の負荷を取得するAPIが追加される。
             "set_generation_params": 有効にすると、チャットストリームの生成パラメータを設定するAPIが追加される。
             "get_resource_usage": 有効にすると、CPUおよびGPUのリソース使用量（メモリ使用量）を取得するAPIが追加される。
-            "web_ui": 有効にすると、チャットストリームのWeb UIが追加される。
+
 
         例：
         append_apis(app, {"include": [ "exclude": ["clear_context"]})
