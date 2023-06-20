@@ -31,8 +31,6 @@ def append_apis(chat_stream, app, opts, logger, eloc):
         "get_load": 有効にすると、チャットストリームの現在の負荷を取得するAPIが追加される。
         "set_generation_params": 有効にすると、チャットストリームの生成パラメータを設定するAPIが追加される。
         "get_resource_usage": 有効にすると、CPUおよびGPUのリソース使用量（メモリ使用量）を取得するAPIが追加される。
-        "web_ui": 有効にすると、チャットストリームのWeb UIが追加される。
-
 
     """
 
@@ -173,7 +171,3 @@ def append_apis(chat_stream, app, opts, logger, eloc):
         app.router.routes.append(route)
         logger.debug(eloc.to_str({"en": f"API endpoint '{route.path}' added.",
                                   "ja": f"APIエンドポイント '{route.path}' を追加しました"}))
-
-        # logger.warning(eloc.to_str({
-        #     "en": f"API endpoint '{DefaultApiPaths.JS}' has been added, but this API is disabled. To enable it, you must initialize ChatStream with allow_web_ui=True",
-        #     "ja": f"APIエンドポイント '{DefaultApiPaths.JS}' を追加しましたが、このAPIは無効です。有効にするには、allow_web_ui=True で ChatStream を初期化する必要があります"}))
