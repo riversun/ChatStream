@@ -13,7 +13,7 @@ from chatstream.default_api_names_to_path import to_web_api_path
 
 # テスト対象のChatStreamをモック化
 class MockChatStream:
-    allow_get_prompt = True
+    pass
 
 
 def test_route_get_prompt_included():
