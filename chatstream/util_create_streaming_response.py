@@ -11,14 +11,25 @@ def create_streaming_response(request,
                               headers: dict = None,
                               eos_token=DEFAULT_FINISH_TOKEN,
                               finish_message="success"):
-    # session["client_roles"] = role_name  # 開発モードでWebAPIにアクセスすることを許可する
+    """
+    ストリーミングレスポンスを生成する
+    :param request:
+    :param response_text:
+    :param streaming_finished_callback:
+    :param headers:
+    :param eos_token:
+    :param finish_message:
+    :return:
+    """
+
     async def generate():
-        ttl = ""
-        for val in list(response_text):
+        merged_response_text = ""
+
+        for partial_char in list(response_text):
             await asyncio.sleep(0.01)
-            ttl += val
-            print(f"イールド {ttl}")
-            yield ttl + eos_token  # TODO 他パートにも EOS_TOKEN 付与する
+            merged_response_text += partial_char
+
+            yield merged_response_text + eos_token
         await streaming_finished_callback(request, finish_message)
 
     generator = generate()
@@ -26,8 +37,8 @@ def create_streaming_response(request,
     streaming_response = StreamingResponse(generator, media_type="text/plain")
 
     if headers is not None:
+        # - レスポンスヘッダーとなるヘッダー定義dict がセットされていたとき
         for key, value in headers.items():
-            print(f"key:{key} value:{value}")
             streaming_response.headers[key] = value
 
     return streaming_response
