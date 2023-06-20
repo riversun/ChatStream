@@ -7,7 +7,7 @@ from starlette.requests import Request
 
 from chatstream import ChatStream
 from chatstream.access_control.client_role_wrapper import ClientRoleWrapper
-from chatstream.access_control.default_client_role_grant_middleware import DefaultClientRoleGrantMiddleware
+from chatstream.access_control.default_client_role_grant_middleware import DefaultClientRoleGrantMiddleware, CHAT_STREAM_CLIENT_ROLE
 from chatstream.easy_locale import EasyLocale
 
 # TODO セッションに既に、ロールが格納されているときには、デフォルトロールの上書きをしないことを確認するUTの実装
@@ -130,6 +130,64 @@ async def test_handling_browser_client_role_access():
     await default_client_role_middleware.dispatch(test_request, call_next)
 
     wrapper = chat_stream.client_role_wrapper
+    session = wrapper.get_browser_session(test_request)
+    client_role_in_session = session.get("chat_stream_client_role", None)
+
+    assert client_role_in_session.get("client_role_name") == "user"
+    assert client_role_in_session.get("allowed_apis") == ['chat_stream', 'clear_context']
+    assert client_role_in_session.get("enable_dev_tool") == False
+
+
+@pytest.mark.asyncio
+async def test_handling_browser_client_role_access_when_alredy_granted_role_exists():
+    # ブラウザからアクセスされたとき、
+    # 既にブラウザはロールを持っている場合
+
+
+    logger = ConsoleLogger()
+
+    app = Mock()
+
+    chat_stream = ChatStream(logger=logger, client_roles=client_roles)
+
+    default_client_role_middleware = DefaultClientRoleGrantMiddleware(app, chat_stream=chat_stream)
+
+    # テスト用リクエストを作成
+    # 自前で Request を new するときは、リクエストヘッダはタプルで指定する
+    test_request = Request(scope={"type": "http", "path": "/chat_stream", "headers": [(b"x-ignore-header", b"ignore-value")]}, receive=None)
+
+    session_middleware = FastSessionMiddleware(
+        app=app,
+        secret_key="test",
+        skip_session_header={"header_name": "X-FastSession-Skip", "header_value": "skip"},
+        logger=logger
+    )
+
+
+
+    class MockResponse:
+        def __init__(self):
+            self.headers = {}
+
+    emulated_response = MockResponse()
+
+    async def call_next(request):
+        return emulated_response
+
+    await session_middleware.dispatch(test_request, call_next)
+
+    existing_role = {
+        "client_role_name": "user",
+        "allowed_apis": ['chat_stream', 'clear_context'],
+        "enable_dev_tool": False
+    }
+
+    wrapper = chat_stream.client_role_wrapper
+    session = wrapper.get_browser_session(test_request)
+    session[CHAT_STREAM_CLIENT_ROLE] = existing_role
+
+    await default_client_role_middleware.dispatch(test_request, call_next)
+
     session = wrapper.get_browser_session(test_request)
     client_role_in_session = session.get("chat_stream_client_role", None)
 

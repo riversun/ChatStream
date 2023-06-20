@@ -88,6 +88,12 @@ class DefaultClientRoleGrantMiddleware(BaseHTTPMiddleware):
         # セッションに現在のロール名があるかどうか確認
         crr_role = session.get(CHAT_STREAM_CLIENT_ROLE)
 
+        self.logger.debug(
+            self.eloc.to_str(
+                {
+                    "en": f"{req_id(request)} Browser client requesting {request.url} Get current role from session. session['{CHAT_STREAM_CLIENT_ROLE}'] => crr_role:{crr_role}",
+                    "ja": f"{req_id(request)}  {request.url}へのリクエスト中 ブラウザクライアントの現在のセッションから現在のロールを取得します session['{CHAT_STREAM_CLIENT_ROLE}'] => crr_role:{crr_role}"}))
+
         if crr_role is None:
             # - 今アクセスしているブラウザクライアントに現在のロールがセットされていないとき
             browser_default_client_role = self.client_role_wrapper.get_browser_default_client_role()
@@ -125,6 +131,10 @@ class DefaultClientRoleGrantMiddleware(BaseHTTPMiddleware):
 
         else:
             # - 現在アクセスしているユーザーには既にロールが割り当てられているとき
+
+            role_name = crr_role.get("client_role_name")
+            allowed_apis = crr_role.get("allowed_apis")
+            enable_dev_tool = crr_role.get("enable_dev_tool")
             self.logger.debug(
                 self.eloc.to_str(
                     {
