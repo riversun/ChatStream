@@ -1,6 +1,5 @@
 from starlette.requests import Request
 
-from chatstream.access_control.client_role_authorizer_for_agent import ClientRoleAuthorizerForAgent
 from chatstream.access_control.client_role_finalizer import ClientRoleFinalizer
 from chatstream.access_control.default_client_role_grant_middleware import CHAT_STREAM_CLIENT_ROLE
 from chatstream.default_api_names import DefaultApiNames
@@ -32,15 +31,15 @@ class ClientRoleVerifier:
         final_client_role = wrapper.get_request_state(request, CHAT_STREAM_CLIENT_ROLE, None)
 
         if api_name not in DefaultApiNames.API_NAMES:
-            raise ValueError(f"Invalid api_name:{api_name}. api_name should any of {DefaultApiNames.API_NAMES}")
+            return {"success": False, "message": f"Invalid api_name:'{api_name}'. api_name should any of {DefaultApiNames.API_NAMES}"}
 
         allowed_apis = final_client_role.get("allowed_apis")
         client_role_name = final_client_role.get("client_role_name")
 
-        is_verified = False
-
         if allowed_apis is None:
-            raise Exception("'allow' property should be set.")
+            return {"success": False, "message": f"'allow' property should be set."}
+
+        is_verified = False
 
         if allowed_apis == "all":
             is_verified = True
@@ -50,6 +49,6 @@ class ClientRoleVerifier:
                 is_verified = True
 
         else:
-            raise TypeError(f"Invalid type for allowed_apis:{allowed_apis}. Expected 'all' or list of API names.")
+            return {"success": False, "message": f"Invalid type for allowed_apis:{allowed_apis}. Expected 'all' or list of API names."}
 
-        return {"success": is_verified}
+        return {"success": is_verified, "message": ""}

@@ -1,16 +1,12 @@
 from unittest.mock import Mock
 
 import pytest
-from fastsession import FastSessionMiddleware, MemoryStore
-
+from fastsession import FastSessionMiddleware
 from starlette.requests import Request
 
 from chatstream import ChatStream
-from chatstream.access_control.client_role_authorizer_for_agent import ClientRoleAuthorizerForAgent
-from chatstream.access_control.client_role_finalizer import ClientRoleFinalizer
 from chatstream.access_control.client_role_verifier import ClientRoleVerifier
-from chatstream.access_control.client_role_wrapper import ClientRoleWrapper
-from chatstream.access_control.default_client_role_grant_middleware import CHAT_STREAM_CLIENT_ROLE, DefaultClientRoleGrantMiddleware
+from chatstream.access_control.default_client_role_grant_middleware import DefaultClientRoleGrantMiddleware
 from chatstream.easy_locale import EasyLocale
 
 
@@ -23,8 +19,6 @@ class ConsoleLogger:
         print(f"[DEBUG]{str}")
         pass
 
-
-from chatstream.access_control.default_client_role_grant_middleware import CHAT_STREAM_CLIENT_ROLE
 
 # ロールのデータ
 client_roles = {
@@ -128,7 +122,7 @@ async def test_verify_browser_client_default():
 
     verified_result = verifier.verify_client_role(test_request, "chat_stream")
 
-    assert verified_result.get("success", False) == True
+    assert verified_result.get("success", False) is True
 
 
 @pytest.mark.asyncio
@@ -172,10 +166,9 @@ async def test_verify_browser_client_default_with_invalid_api_name():
     await default_client_role_middleware.dispatch(test_request, call_next)
 
     verifier = ClientRoleVerifier(chat_stream)
-
-    with pytest.raises(ValueError):
-        # 不正なapi_name を指定した場合はエラーとなる
-        verified_result = verifier.verify_client_role(test_request, "chat_stream1")
+    verified_result = verifier.verify_client_role(test_request, "chat_stream1")
+    assert verified_result.get("success") is False
+    assert verified_result.get("message").startswith("Invalid api_name:'chat_stream1'.")
 
 
 # TODO　昇格済の状態でUT追加
@@ -272,9 +265,8 @@ async def test_invalid_api_name():
 
     await default_client_role_middleware.dispatch(test_request, call_next)
 
-    # wrapper = chat_stream.client_role_wrapper
     verifier = ClientRoleVerifier(chat_stream)
+    verify_result = verifier.verify_client_role(test_request, "get_load1")
 
-    with pytest.raises(ValueError):
-        # 不正なapi_name を指定した場合はエラーとなる
-        r = verifier.verify_client_role(test_request, "get_load1")
+    assert verify_result.get("success") is False
+    assert verify_result.get("message").startswith("Invalid api_name:'get_load1'.")
