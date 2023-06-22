@@ -1,5 +1,6 @@
 import json
 import traceback
+import uuid
 
 from fastapi import Request
 from fastapi.responses import StreamingResponse
@@ -37,7 +38,7 @@ class SimpleSessionRequestHandler(AbstractRequestHandler):
         try:
 
             self.logger.debug(self.eloc.to_str({"en": f"{req_id(request)} Starts handling the request",
-                                                "ja": f"'{req_id(request)} リクエストのハンドリングを開始します"}))
+                                                "ja": f"{req_id(request)} リクエストのハンドリングを開始します"}))
 
             if not hasattr(request.state, self.session_attr):
                 # セッションミドルウェアが存在しない場合はエラー
@@ -55,7 +56,7 @@ class SimpleSessionRequestHandler(AbstractRequestHandler):
 
                 self.logger.debug(self.eloc.to_str(
                     {"en": f"{req_id(request)} Since chat_prompt does not exist in the session, create a new one.",
-                     "ja": f"'{req_id(request)} chat_prompt がセッションに存在しないので、新規生成します"}))
+                     "ja": f"{req_id(request)} chat_prompt がセッションに存在しないので、新規生成します"}))
 
                 chat_prompt = self.chat_prompt_clazz()  # ChatPrompt をインスタンス化する
 
@@ -72,7 +73,7 @@ class SimpleSessionRequestHandler(AbstractRequestHandler):
 
                 self.logger.debug(self.eloc.to_str({
                     "en": f"{req_id(request)} Since request_body is specified, the request data is retrieved from it. The request may have been intercepted by the Web API front-end.",
-                    "ja": f"'{req_id(request)} request_body が指定されているため、そこからリクエストデータを取得します。リクエストが Web API のフロント処理でインターセプトされた可能性があります。"}))
+                    "ja": f"{req_id(request)} request_body が指定されているため、そこからリクエストデータを取得します。リクエストが Web API のフロント処理でインターセプトされた可能性があります。"}))
 
                 # request はストリームで提供されるため、どこかで読み取ると consume されてしまう。
                 # そこで、もしどこかでインターセプトしてリクエストされたデータを使いたい場合は
@@ -92,14 +93,14 @@ class SimpleSessionRequestHandler(AbstractRequestHandler):
 
             self.logger.debug(self.eloc.to_str(
                 {"en": f"{req_id(request)} Get Parameters user_input:{user_input} regenerate:{need_regenerate}",
-                 "ja": f"'{req_id(request)} パラメータ取得 user_input:{user_input} regenerate:{need_regenerate}"}))
+                 "ja": f"{req_id(request)} パラメータ取得 user_input:{user_input} regenerate:{need_regenerate}"}))
 
             if need_regenerate:
                 # AIアシスタント側の再生成モードのとき
 
                 self.logger.debug(self.eloc.to_str({
                     "en": f"{req_id(request)} Do regenerate. user_input(request_last_msg used at regenerate):'{chat_prompt.get_requester_last_msg()}'",
-                    "ja": f"'{req_id(request)} regenerate します。 user_input(regenerate時に使用される request_last_msg):'{chat_prompt.get_requester_last_msg()}'"}))
+                    "ja": f"{req_id(request)} regenerate します。 user_input(regenerate時に使用される request_last_msg):'{chat_prompt.get_requester_last_msg()}'"}))
 
                 if chat_prompt.is_empty():
                     # - ユーザー・AIアシスタント(responder)間で、まだ会話が何も存在しない場合
@@ -118,7 +119,7 @@ class SimpleSessionRequestHandler(AbstractRequestHandler):
 
                 self.logger.debug(self.eloc.to_str(
                     {"en": f"{req_id(request)} Add user input data into chat_prompt user_input:'{user_input}'",
-                     "ja": f"'{req_id(request)} chat_prompt にユーザー入力データを追加 user_input:'{user_input}"}))
+                     "ja": f"{req_id(request)} chat_prompt にユーザー入力データを追加 user_input:'{user_input}"}))
                 chat_prompt.add_requester_msg(user_input)
                 chat_prompt.add_responder_msg(None)
 
@@ -128,7 +129,7 @@ class SimpleSessionRequestHandler(AbstractRequestHandler):
                 """
                 self.logger.debug(self.eloc.to_str(
                     {"en": f"{req_id(request)} Text generation end callback received message:'{message}'",
-                     "ja": f"'{req_id(request)} 文章生成終了コールバックを受信しました message:'{message}'"}))
+                     "ja": f"{req_id(request)} 文章生成終了コールバックを受信しました message:'{message}'"}))
 
                 # 生成された文章のストリーミングが終了したときに実行される
                 if message == "success":
@@ -141,7 +142,7 @@ class SimpleSessionRequestHandler(AbstractRequestHandler):
 
                     self.logger.debug(
                         self.eloc.to_str({"en": f"{req_id(request)} Saved session content",
-                                          "ja": f"'{req_id(request)} セッション内容を保存しました"}))
+                                          "ja": f"{req_id(request)} セッション内容を保存しました"}))
                 elif message == "client_disconnected_while_streaming":
                     # クライアントに対して、文章ストリーミングを送出中にネットワークエラーまたは、クライアントから明示的に切断されたとき
                     session_mgr.save_session()
@@ -149,7 +150,7 @@ class SimpleSessionRequestHandler(AbstractRequestHandler):
                     self.logger.debug(
                         self.eloc.to_str({
                             "en": f"{req_id(request)} A network error occurred, but the session content was saved halfway through",
-                            "ja": f"'{req_id(request)} ネットワークエラーが発生しましたが、セッション内容は途中まで保存しました"}))
+                            "ja": f"{req_id(request)} ネットワークエラーが発生しましたが、セッション内容は途中まで保存しました"}))
                     pass
                 elif message.startswith("unknown_error_occurred"):
                     # 予期せぬエラー（一般的な Syntax Errorなど)
@@ -162,13 +163,25 @@ class SimpleSessionRequestHandler(AbstractRequestHandler):
                 await streaming_finished_callback(request, message)
 
             custom_generation_params = session.get("generation_params", None)
-            generator = self.generate(chat_prompt, chat_generation_finished_callback, request, custom_generation_params)
+            message_id = str(uuid.uuid4())
+            generator = self.generate(chat_prompt, chat_generation_finished_callback, request, custom_generation_params, message_id=message_id)
 
             streaming_response = StreamingResponse(generator, media_type="text/plain")
 
+            # レスポンスヘッダをセットする
+            # レスポンスヘッダに生成した最新メッセージ用の message_id を付与する
+            headers = {"X-ChatStream-Last-Generated-Message-Id": message_id}
+
+            for key, value in headers.items():
+                streaming_response.headers[key] = value
+
+            self.logger.debug(self.eloc.to_str({
+                "en": f"A message ID:'{message_id}' was issued to identify the currently generated sentence, and was added to the response header 'X-ChatStream-Last-Generated-Message-Id'.",
+                "ja": f"現在生成中の文章を特定するための メッセージID:'{message_id}' を発行し、レスポンスヘッダ 'X-ChatStream-Last-Generated-Message-Id' に付与しました。"}))
+
             self.logger.debug(self.eloc.to_str({
                 "en": f"{req_id(request)} StreamingResponse is generated from the sequential text generator. This is returned as the return value.",
-                "ja": f"'{req_id(request)} 逐次文章生成の generator から StreamingResponse 生成しました。これを戻り値として return　します"}))
+                "ja": f"{req_id(request)} 逐次文章生成の generator から StreamingResponse 生成しました。これを戻り値として return　します"}))
             return streaming_response
 
         except Exception as e:
@@ -177,7 +190,7 @@ class SimpleSessionRequestHandler(AbstractRequestHandler):
             # generator内で exceptionを raise しても、ここでキャッチできないことに注意。
             self.logger.debug(self.eloc.to_str({
                 "en": f"{req_id(request)} An unexpected error occurred during request handler execution. {e}\n{traceback.format_exc()}",
-                "ja": f"'{req_id(request)} リクエストハンドラ実行中に予期せぬエラーが発生しました {e}\n{traceback.format_exc()}"}))
+                "ja": f"{req_id(request)} リクエストハンドラ実行中に予期せぬエラーが発生しました {e}\n{traceback.format_exc()}"}))
 
             return await self.return_internal_server_error_response(request, streaming_finished_callback,
                                                                     "simple session request")
