@@ -1,10 +1,12 @@
 from abc import ABC, abstractmethod
+import uuid
 
 
 class ChatContent:
     def __init__(self, role: str, msg: str = ""):
         self.role = role
         self.message = msg
+        self.message_id = None
 
     def get_role(self):
         return self.role
@@ -12,11 +14,30 @@ class ChatContent:
     def get_message(self):
         return self.message
 
-    def set_message(self, msg):
+    def set_message_id(self, message_id: str):
+        """
+        メッセージIDをセットする
+        :return:
+        """
+        self.message_id = message_id
+
+    def get_message_id(self):
+        """
+        メッセージIDを取得する
+        :return:
+        """
+        return self.message_id
+
+    def set_message(self, msg: str):
+        """
+        メッセージをセットする
+        :param msg:
+        :return:
+        """
         self.message = msg
 
     def __dict__(self):
-        return {"role": self.role, "message": self.message}
+        return {"role": self.role, "message": self.message, "message_id": self.message_id}
 
     @classmethod
     def from_dict(cls, data):
@@ -38,8 +59,16 @@ class AbstractChatPrompt(ABC):
         self.chat_mode = True
 
     def get_contents(self, opts={}):
+        """
+        これまでの会話履歴(list)を取得する
+        :param opts:
+        "omit_last_message":True の場合、最新のメッセージは会話履歴に含めないで返す
+        "to_message_id": ここにメッセージID を指定すると、そのメッセージIDまでの会話履歴を返す
+        :return:
+        """
 
         omit_last_message = opts.get("omit_last_message", False)
+        to_message_id = opts.get("to_message_id", None)
 
         list = []
         for idx, chat_content in enumerate(self.chat_contents):
@@ -52,6 +81,11 @@ class AbstractChatPrompt(ABC):
                 list.append(last_content)
             else:
                 list.append(chat_content)
+
+            if to_message_id is not None:
+                message_id = chat_content.get_message_id()
+                if to_message_id == message_id:
+                    return list  # to_message_id が検出されたらそこで出力終了
 
         return list
 
@@ -112,6 +146,7 @@ class AbstractChatPrompt(ABC):
         Set the message of the last response from the responder (AI) to None.
         """
         if self.responder_messages and self.chat_contents and self.chat_contents[-1].get_role() == self.responder:
+            # 最後のメッセージが応答者（AIアシスタント側）の場合
             self.responder_messages[-1].set_message(None)
             self.chat_contents[-1].set_message(None)
         else:
@@ -142,6 +177,15 @@ class AbstractChatPrompt(ABC):
         self.responder_messages[-1].message = message
         self.chat_contents[-1].set_message(message)
 
+    def set_responder_last_msg_id(self, message_id):
+        """
+        AI 側の最新メッセージのメッセージIDを設定する
+        """
+
+        # responder_messagesリストの最後のメッセージを更新
+        self.responder_messages[-1].set_message_id(message_id)
+        self.chat_contents[-1].set_message_id(message_id)
+
     def _add_msg(self, chat_content_obj):
         # チャットメッセージリストに追加
         self.chat_contents.append(chat_content_obj)
@@ -170,7 +214,7 @@ class AbstractChatPrompt(ABC):
         （Get the length to skip (already entered as a prompt)
         :return:
         """
-        current_prompt = self.create_prompt({"omit_last_message":omit_last_message})
+        current_prompt = self.create_prompt({"omit_last_message": omit_last_message})
 
         skip_echo_len = len(current_prompt)
 

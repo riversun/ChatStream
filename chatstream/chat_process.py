@@ -8,7 +8,8 @@ import asyncio
 
 from tokflow import TokFlow
 
-UPDATE_RESPONDER_TOKEN_ONE_BY_ONE = True
+UPDATE_RESPONDER_TOKEN_ONE_BY_ONE = True  # True:トークンが1件生成されるたびに、履歴(chat_prompt) を更新する
+
 condition_for_updated_text = {"in_type": "spot", "out_type": "spot"}
 condition_for_response_text = {"in_type": "full", "out_type": "full"}
 
@@ -54,6 +55,8 @@ class ChatGenerator:
         prompt = chat_prompt.create_prompt()  # これまでの会話履歴を含んだプロンプトを生成する
 
         otype = opts.get("output_type", None)
+        generated_message_id = opts.get("message_id", None)  # 生成された文章を識別するためのid
+
         post_process_callback = opts.get("post_process_callback", None)
 
         if chat_prompt.is_chat_mode_enabled():
@@ -142,7 +145,9 @@ class ChatGenerator:
                 # 1トークンあらたに生成されるごとに、chat_prompt を更新する
                 # この方式のメリットは、途中まで文章生成をしたが、ネットワーク断などで
                 # 最後まで生成できなかった場合でも途中の生成したところまでを chat_prompt に履歴を反映しておける点
-                chat_prompt.set_responder_last_msg(response_text.strip())
+                chat_prompt.set_responder_last_msg(response_text.strip())  # 最新のAIアシスタント側生成メッセージをセットする
+                if generated_message_id:
+                    chat_prompt.set_responder_last_msg_id(generated_message_id)
 
             index += 1
 
@@ -152,7 +157,9 @@ class ChatGenerator:
                 # AI側の最後の返信を会話履歴に追加する
                 # この方式の場合は、最後まで（文章生成の正常停止まで）トークンが生成できた場合のみ chat_prompt に履歴を反映する
                 # もし途中で切断されたら履歴は残らない
-                chat_prompt.set_responder_last_msg(response_text.strip())
+                chat_prompt.set_responder_last_msg(response_text.strip())  # 最新のAIアシスタント側生成メッセージをセットする
+                if generated_message_id:
+                    chat_prompt.set_responder_last_msg_id(generated_message_id)
 
         pos = "end"
 

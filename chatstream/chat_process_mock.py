@@ -18,6 +18,7 @@ class ChatGeneratorMock:
         try:
 
             otype = opts.get("output_type", None)
+            generated_message_id = opts.get("message_id", None)  # 生成された文章を識別するためのid
             post_process_callback = opts.get("post_process_callback", None)
 
             if chat_prompt.is_chat_mode_enabled():
@@ -72,6 +73,8 @@ class ChatGeneratorMock:
             if chat_prompt.is_chat_mode_enabled():
                 # AI側の最後の返信を会話履歴に追加する
                 chat_prompt.set_responder_last_msg(resp_text.strip())
+                if generated_message_id:
+                    chat_prompt.set_responder_last_msg_id(generated_message_id)
 
             pos = "end"
 
