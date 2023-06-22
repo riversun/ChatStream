@@ -29,25 +29,42 @@ class EasyLocale:
 
     def _get_current_locale(self):
         """
-        Private method to get the current locale of the system in ISO 639-1 format.
-        It supports only English and Japanese languages.
+        Private method to get the current locale of the system.
+        It supports English, Japanese, Chinese and Korean languages.
 
         :return: The current locale of the system in ISO 639-1 format.
         :rtype: str
         """
 
-        raw_language = locale.getlocale()[0];
-        if '_' in raw_language:
-            raw_language = raw_language.split('_')[0]
+        try:
+            raw_language = locale.getlocale()[0]
+            if raw_language is None:
+                return 'en'  # default locale
 
-        current_locale = 'en'
+            if '_' in raw_language:
+                raw_language = raw_language.split('_')[0]
 
-        if raw_language == 'Japanese':
-            current_locale = 'ja'
-        elif raw_language == 'English':
             current_locale = 'en'
 
-        return current_locale
+            if raw_language == 'Japanese':
+                current_locale = 'ja'
+            elif raw_language == 'Chinese':
+                current_locale = 'zh'
+            elif raw_language == 'Korean':
+                current_locale = 'ko'
+            elif raw_language == 'English':
+                current_locale = 'en'
+            elif raw_language == 'French':
+                current_locale = 'fr'
+            elif raw_language == 'German':
+                current_locale = 'de'
+            elif raw_language == 'Italian':
+                current_locale = 'it'
+
+            return current_locale
+        except Exception as e:
+            print(f"Error getting locale: {e}")
+            return 'en'  # default locale in case of an error
 
     def get_locale(self):
         """
@@ -85,4 +102,3 @@ class EasyLocale:
             return message
         else:
             return '(locale_type_error)'
-
