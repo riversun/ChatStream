@@ -126,6 +126,17 @@ def append_apis(chat_stream, app, opts, logger, eloc):
         logger.debug(eloc.to_str({"en": f"API endpoint '{route.path}' added.",
                                   "ja": f"APIエンドポイント '{route.path}' を追加しました"}))
 
+    if is_enabled(DefaultApiNames.SET_FEEDBACK):
+        api_name = DefaultApiNames.SET_FEEDBACK
+
+        async def api_func(request: Request, response: Response):
+            return await chat_stream.handle_set_feedback_request(request)
+
+        route = APIRoute(path=to_web_api_path(api_name), endpoint=api_func, methods=[DefaultApiNames.API_METHODS.get(api_name)])
+        app.router.routes.append(route)
+        logger.debug(eloc.to_str({"en": f"API endpoint '{route.path}' added. method:{DefaultApiNames.API_METHODS.get(api_name)}",
+                                  "ja": f"APIエンドポイント '{route.path}' を追加しました method:{DefaultApiNames.API_METHODS.get(api_name)}"}))
+
     if is_enabled(DefaultApiNames.GET_GENERATION_PARAMS):
         api_name = DefaultApiNames.GET_GENERATION_PARAMS
 

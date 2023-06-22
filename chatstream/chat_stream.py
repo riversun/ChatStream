@@ -59,7 +59,7 @@ class ChatStream:
             client_roles = {
                 "user": {
                     "apis": {
-                        "allow": ["chat_stream", "clear_context"],
+                        "allow": ["chat_stream", "clear_context", "set_feedback"],
                         "auth_method": "nothing",  # default role
                         "use_session": True,
                     }
@@ -431,6 +431,11 @@ class ChatStream:
             if verify_error_response:
                 return verify_error_response
 
+            if not self.request_handler.get_request_handler_type() == "http_session":
+                # 会話履歴(chat_prompt) の保存先が session ではない　とき
+                # 現在のところ、セッションでない保存先に会話履歴を保存するリクエストハンドラには対応していない
+                return {"success": False, "message": "Not supported on current request_handler type."}
+
             session_mgr = getattr(request.state, "session", None)
 
             if session_mgr:
@@ -559,21 +564,11 @@ class ChatStream:
                 # セッションオブジェクト（辞書オブジェクト）を取得する
                 session = session_mgr.get_session()
 
-                # ユーザーが指定した生成パラメータをセッションに保存
-                session_stored_generation_params = session.get("generation_params", {});
-
-                # デフォルトの生成パラメータ
-                crr_params = {
-                    "temperature": self.params.get("temperature"),
-                    "top_k_value": self.params.get("top_k_value"),
-                    "top_p_value": self.params.get("top_p_value"),
-                }
-                # ChatStream 初期化時に指定された生成パラメータに、現在セッションで保持されているユーザーごとの生成パラメータをマージしたものを返す
-                merged_params = merge_dict(crr_params, session_stored_generation_params)
+                generation_params = await self._get_generation_params_via_session(session)
 
                 return {
                     "success": True, "message": "success",
-                    "generation_params": merged_params
+                    "generation_params": generation_params
                 }
             else:
 
@@ -592,6 +587,110 @@ class ChatStream:
 
             return {"success": False, "message": "error occurred"}
 
+    async def _get_generation_params_via_session(self, session):
+        """
+        ユーザーにひもづく セッション に格納された生成パラメータを取得する
+        ユーザー特有にカスタムされたパラメータがセットされていない場合デフォルトのパラメータを返す
+        :param session:
+        :return:
+        """
+        # ユーザーが指定した生成パラメータをセッションに保存
+        session_stored_generation_params = session.get("generation_params", {});
+        # デフォルトの生成パラメータ
+        crr_params = {
+            "temperature": self.params.get("temperature"),
+            "top_k_value": self.params.get("top_k_value"),
+            "top_p_value": self.params.get("top_p_value"),
+        }
+        # TODO seed値も含める
+        # ChatStream 初期化時に指定された生成パラメータに、現在セッションで保持されているユーザーごとの生成パラメータをマージしたものを返す
+        merged_params = merge_dict(crr_params, session_stored_generation_params)
+        return merged_params
+
+    async def handle_set_feedback_request(self, request: Request, opts={}):
+        """
+        生成内容に関するユーザーフィードバックを受け付ける Web API エンドポイントのハンドリングをする
+
+        (注意)本メソッドは 会話履歴(chat_prompt)がセッションに格納されることを前提としている
+        """
+
+        try:
+            api_name = "set_feedback"
+            verify_error_response = self.verify_role_for_api(request, api_name)
+            if verify_error_response:
+                return verify_error_response
+
+            if not self.request_handler.get_request_handler_type() == "http_session":
+                # 会話履歴(chat_prompt) の保存先が session ではない　とき
+                # 現在のところ、セッションでない保存先に会話履歴を保存するリクエストハンドラには対応していない
+                return {"success": False, "message": "Not supported on current request_handler type."}
+
+            callbackFunc = opts.get("on_feedback_received", None)
+
+            feedback_from_client = await request.json()
+
+            session_mgr = getattr(request.state, "session", None)
+
+            if session_mgr:
+                # セッションオブジェクト（辞書オブジェクト）を取得する
+                session = session_mgr.get_session()
+                chat_prompt = session.get("chat_prompt")  # 履歴を取り出す
+                is_like = feedback_from_client.get("like", False)
+                message_id = feedback_from_client.get("message_id", None)
+                additional_comments = feedback_from_client.get("additional_comments", "")
+
+                generation_params = await self._get_generation_params_via_session(session)  # 生成パラメータ
+
+                if message_id is None:
+                    return {
+                        "success": True,
+                        "message": "message_id is None",
+                    }
+                if chat_prompt is not None:
+                    target_prompt = chat_prompt.create_prompt({"to_message_id": message_id})  # message_id までの履歴を含むプロンプトを取得する
+                    target_chat_content = chat_prompt.find_chat_content_by_message_id(message_id)
+                    target_message = target_chat_content.get_message()
+
+                    feedback_data = {
+                        "is_like": is_like,
+                        "additional_comments": additional_comments,
+                        "prompt": target_prompt,  # 指定したメッセージIDまでのプロンプト
+                        "target_message_id": message_id,
+                        "target_message": target_message,  # フィードバックがついた応答メッセージそのもの
+                        "generation_params": generation_params,
+                    }
+
+                    json_data = json.dumps(feedback_data, ensure_ascii=False, indent=2)
+
+                    self.logger.debug(self.eloc.to_str(
+                        {"en": f"{req_id(request)} User feedback received. user feedback:{json_data}",
+                         "ja": f"{req_id(request)} ユーザーからのフィードバックを受信しました user feedback:{json_data}"}))
+
+                    if callbackFunc is not None:
+                        callbackFunc(feedback_data)
+
+                return {
+                    "success": True,
+                    "message": "success",
+                }
+            else:
+                # セッションが存在しないとき
+                self.logger.debug(self.eloc.to_str(
+                    {"en": f"{req_id(request)} Attempted to update generation parameters, but session did not exist",
+                     "ja": f"{req_id(request)} 生成パラメータを更新しようとしましたが、セッションは存在しませんでした"}))
+
+                return {"success": False, "message": "no session"}
+
+        except Exception as e:
+            tb = traceback.format_exc()
+            sys.stderr.write(tb)
+            self.logger.warning(
+                self.eloc.to_str(
+                    {"en": f"{req_id(request)} An unexpected error has occurred. {e}\n{traceback.format_exc()}",
+                     "ja": f"{req_id(request)} 予期せぬエラーが発生しました: {e}\n{traceback.format_exc()}"}))
+
+            return {"success": False, "message": "error occurred"}
+
     async def handle_get_prompt_request(self, request: Request):
         try:
 
@@ -599,6 +698,11 @@ class ChatStream:
             verify_error_response = self.verify_role_for_api(request, api_name)
             if verify_error_response:
                 return verify_error_response
+
+            if not self.request_handler.get_request_handler_type() == "http_session":
+                # 会話履歴(chat_prompt) の保存先が session ではない　とき
+                # 現在のところ、セッションでない保存先に会話履歴を保存するリクエストハンドラには対応していない
+                return {"success": False, "message": "Not supported on current request_handler type."}
 
             session_mgr = getattr(request.state, "session", None)
             if session_mgr:
