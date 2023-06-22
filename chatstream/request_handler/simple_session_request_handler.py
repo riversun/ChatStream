@@ -24,6 +24,9 @@ class SimpleSessionRequestHandler(AbstractRequestHandler):
         super().__init__()
         self.session_attr = session_attr_name
 
+    def get_request_handler_type(self):
+        return "http_session"
+
     async def process_request(self, request: Request, request_body, streaming_finished_callback):
         """
         FastAPI/Starlette の Request を処理し、 chat_prompt(会話履歴を含むプロンプト) をオンメモリのセッションに格納する

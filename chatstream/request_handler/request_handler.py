@@ -149,3 +149,7 @@ class AbstractRequestHandler(ABC):
     @abstractmethod
     async def process_request(self, request: Request, streaming_finished_callback):
         pass
+
+    @abstractmethod
+    def get_request_handler_type(self):
+        pass
