@@ -17,6 +17,7 @@ from .access_control.client_role_wrapper import ClientRoleWrapper
 from .chat_process import ChatGenerator
 from .chat_process_mock import ChatGeneratorMock
 from .chat_stream_api_appender import append_apis
+from .chat_stream_middleware_appender import append_middlewares
 from .easy_locale import EasyLocale
 from .merge_dic import merge_dict
 from .request_handler.simple_session_request_handler import SimpleSessionRequestHandler
@@ -166,7 +167,7 @@ class ChatStream:
 
                 self.logger.debug(self.eloc.to_str(
                     {"en": f"{req_id(request)} Retrieve request tasks from the 'request queue'",
-                     "ja": f"'{req_id(request)} リクエストキュー'からリクエストタスク取り出し"}))
+                     "ja": f"{req_id(request)} リクエストキュー'からリクエストタスク取り出し"}))
 
                 # 同時処理カウントセマフォ(concurrent_processing_semaphore) がロックされているときに
                 # 短時間（１秒以内）に大量リクエストが来た場合、　次実行キュー(run_on_next_queue) に詰める前に
@@ -186,7 +187,7 @@ class ChatStream:
 
                 self.logger.debug(self.eloc.to_str(
                     {"en": f"{req_id(request)} Add request task to 'next processing queue",
-                     "ja": f"'{req_id(request)} リクエストタスクを'次処理キュー'に追加"}))
+                     "ja": f"{req_id(request)} リクエストタスクを'次処理キュー'に追加"}))
 
                 # 同時処理カウントセマフォ(concurrent_processing_semaphore)を１つ取得
                 await self.concurrent_processing_semaphore.acquire()
@@ -196,12 +197,12 @@ class ChatStream:
 
                 self.logger.debug(self.eloc.to_str(
                     {"en": f"{req_id(request)} Request task in progress: Execution rights acquired",
-                     "ja": f"'{req_id(request)} リクエストタスク処理中： 実行権を獲得"}))
+                     "ja": f"{req_id(request)} リクエストタスク処理中： 実行権を獲得"}))
 
                 async def request_processing_finished_callback(request, message):
                     self.logger.debug(
                         self.eloc.to_str({"en": f"{req_id(request)} End callback available message:{message}",
-                                          "ja": f"'{req_id(request)} 終了コールバックあり message:{message}"}))
+                                          "ja": f"{req_id(request)} 終了コールバックあり message:{message}"}))
 
                     """
                     文章生成ストリームの終了時に呼び出されるコールバック関数
@@ -221,7 +222,7 @@ class ChatStream:
                     self.logger.debug(
                         self.eloc.to_str({
                             "en": f"{req_id(request)} Request task in progress: End of text generation message:{message}",
-                            "ja": f"'{req_id(request)} リクエストタスク処理中： 文章生成終了　message:{message}"}))
+                            "ja": f"{req_id(request)} リクエストタスク処理中： 文章生成終了　message:{message}"}))
                     if callback:
                         callback(request, message)
                     # 上の2つ（セマフォと、キュー）を解放したので、次に処理されるべきリクエストタスクが処理(モデルによる文章生成)できるようになる。
@@ -251,7 +252,7 @@ class ChatStream:
                     self.logger.warning(
                         self.eloc.to_str(
                             {"en": f"{req_id(request)} An unexpected error has occurred. {e}\n{traceback.format_exc()}",
-                             "ja": f"'{req_id(request)} 予期せぬエラーが発生しました: {e}\n{traceback.format_exc()}"}))
+                             "ja": f"{req_id(request)} 予期せぬエラーが発生しました: {e}\n{traceback.format_exc()}"}))
 
                     final_response = JSONResponse(
                         content={"error": "internal_server_error", "detail": "generating response"}, status_code=500,
@@ -279,7 +280,7 @@ class ChatStream:
             self.logger.warning(
                 self.eloc.to_str(
                     {"en": f"{req_id(request)} An unexpected error has occurred. {e}\n{traceback.format_exc()}",
-                     "ja": f"'{req_id(request)} 予期せぬエラーが発生しました: {e}\n{traceback.format_exc()}"}))
+                     "ja": f"{req_id(request)} 予期せぬエラーが発生しました: {e}\n{traceback.format_exc()}"}))
 
     async def start_queue_worker(self):
         """
@@ -352,7 +353,7 @@ class ChatStream:
             self.logger.debug(self.eloc.to_str(
                 {
                     "en": f"{req_id(request)} Add this request to the 'request queue. Queue Size:{self.request_queue.qsize()}/{self.request_queue.maxsize}",
-                    "ja": f"'{req_id(request)} このリクエストを'リクエストキュー'に追加 キューサイズ:{self.request_queue.qsize()}/{self.request_queue.maxsize}"
+                    "ja": f"{req_id(request)} このリクエストを'リクエストキュー'に追加 キューサイズ:{self.request_queue.qsize()}/{self.request_queue.maxsize}"
                 }))
 
         except asyncio.QueueFull:
@@ -363,7 +364,7 @@ class ChatStream:
             self.logger.debug(self.eloc.to_str(
                 {
                     "en": f"{req_id(request)} Failed to add this request to the 'request queue'. Request queue is full.",
-                    "ja": f"'{req_id(request)} このリクエストを'リクエストキュー'に追加失敗。リクエストキューがいっぱいです"
+                    "ja": f"{req_id(request)} このリクエストを'リクエストキュー'に追加失敗。リクエストキューがいっぱいです"
                 }))
 
             if self.too_many_request_as_http_error:
@@ -377,7 +378,7 @@ class ChatStream:
             self.logger.warning(
                 self.eloc.to_str(
                     {"en": f"{req_id(request)} An unexpected error has occurred. {e}\n{traceback.format_exc()}",
-                     "ja": f"'{req_id(request)} 予期せぬエラーが発生しました: {e}\n{traceback.format_exc()}"}))
+                     "ja": f"{req_id(request)} 予期せぬエラーが発生しました: {e}\n{traceback.format_exc()}"}))
 
             return JSONResponse(
                 content={"error": "internal_server_error", "detail": "queueing request"}, status_code=500,
@@ -387,7 +388,7 @@ class ChatStream:
         await this_request_semaphore.acquire()  # 処理待ち用カウントセマフォが releaseされるのを待つ / Wait for the waiting count semaphore to be released
 
         self.logger.debug(self.eloc.to_str({"en": f"{req_id(request)} Semaphore for this request has been released.",
-                                            "ja": f"'{req_id(request)} このリクエスト用セマフォは解放されました"}))
+                                            "ja": f"{req_id(request)} このリクエスト用セマフォは解放されました"}))
 
         return await future_result
 
@@ -411,7 +412,7 @@ class ChatStream:
             self.logger.warning(
                 self.eloc.to_str(
                     {"en": f"{req_id(request)} An unexpected error has occurred. {e}\n{traceback.format_exc()}",
-                     "ja": f"'{req_id(request)} 予期せぬエラーが発生しました: {e}\n{traceback.format_exc()}"}))
+                     "ja": f"{req_id(request)} 予期せぬエラーが発生しました: {e}\n{traceback.format_exc()}"}))
 
             return {"success": False, "message": "Error occurred"}
 
@@ -441,13 +442,13 @@ class ChatStream:
                     session.pop("chat_prompt", None)  # 削除する
 
                 self.logger.debug(self.eloc.to_str({"en": f"{req_id(request)} Context has been cleared.",
-                                                    "ja": f"'{req_id(request)} コンテクストがクリアされました"}))
+                                                    "ja": f"{req_id(request)} コンテクストがクリアされました"}))
 
                 return {"success": True, "message": "Context successfully cleared"}
             else:
                 self.logger.debug(
                     self.eloc.to_str({"en": f"{req_id(request)} Attempted to clear context, but session did not exist",
-                                      "ja": f"'{req_id(request)} コンテクストをクリアしようとしましたが、セッションは存在しませんでした"}))
+                                      "ja": f"{req_id(request)} コンテクストをクリアしようとしましたが、セッションは存在しませんでした"}))
 
                 return {"success": False, "message": "no context."}
 
@@ -457,7 +458,7 @@ class ChatStream:
             self.logger.warning(
                 self.eloc.to_str(
                     {"en": f"{req_id(request)} An unexpected error has occurred. {e}\n{traceback.format_exc()}",
-                     "ja": f"'{req_id(request)} 予期せぬエラーが発生しました: {e}\n{traceback.format_exc()}"}))
+                     "ja": f"{req_id(request)} 予期せぬエラーが発生しました: {e}\n{traceback.format_exc()}"}))
 
             return {"success": False, "message": "Error occurred"}
 
@@ -531,7 +532,7 @@ class ChatStream:
             else:
                 self.logger.debug(self.eloc.to_str(
                     {"en": f"{req_id(request)} Attempted to update generation parameters, but session did not exist",
-                     "ja": f"'{req_id(request)} 生成パラメータを更新しようとしましたが、セッションは存在しませんでした"}))
+                     "ja": f"{req_id(request)} 生成パラメータを更新しようとしましたが、セッションは存在しませんでした"}))
 
                 return {"success": False, "message": "no session", "generation_params": None}
 
@@ -541,7 +542,7 @@ class ChatStream:
             self.logger.warning(
                 self.eloc.to_str(
                     {"en": f"{req_id(request)} An unexpected error has occurred. {e}\n{traceback.format_exc()}",
-                     "ja": f"'{req_id(request)} 予期せぬエラーが発生しました: {e}\n{traceback.format_exc()}"}))
+                     "ja": f"{req_id(request)} 予期せぬエラーが発生しました: {e}\n{traceback.format_exc()}"}))
 
             return {"success": False, "message": "error occurred"}
 
@@ -578,7 +579,7 @@ class ChatStream:
 
                 self.logger.debug(self.eloc.to_str(
                     {"en": f"{req_id(request)} Attempted to retrieve generation parameters, but session did not exist",
-                     "ja": f"'{req_id(request)} 生成パラメータを取得しようとしましたが、セッションは存在しませんでした"}))
+                     "ja": f"{req_id(request)} 生成パラメータを取得しようとしましたが、セッションは存在しませんでした"}))
 
                 return {"success": False, "message": "no session", "generation_params": None}
 
@@ -587,7 +588,7 @@ class ChatStream:
             sys.stderr.write(tb)
             self.logger.warning(self.eloc.to_str({
                 "en": f"{req_id(request)} An unexpected error occurred while trying to retrieve the generation parameters　{e}\n{traceback.format_exc()}",
-                "ja": f"'{req_id(request)} 生成パラメータを取得しようとしたところ予期せぬエラーが発生しました　{e}\n{traceback.format_exc()}"}))
+                "ja": f"{req_id(request)} 生成パラメータを取得しようとしたところ予期せぬエラーが発生しました　{e}\n{traceback.format_exc()}"}))
 
             return {"success": False, "message": "error occurred"}
 
@@ -607,7 +608,7 @@ class ChatStream:
                 if chat_prompt is None:
                     self.logger.debug(
                         self.eloc.to_str({"en": f"{req_id(request)} Attempted to get prompt, but prompt is not yet set",
-                                          "ja": f"'{req_id(request)} プロンプトを取得しようとしましたが、プロンプトはまだセットされていません"}))
+                                          "ja": f"{req_id(request)} プロンプトを取得しようとしましたが、プロンプトはまだセットされていません"}))
 
                     return {"success": True, "message": "no prompt", "prompt": None}
 
@@ -618,7 +619,7 @@ class ChatStream:
             else:
 
                 self.logger.debug(self.eloc.to_str({"en": f"{req_id(request)} Got prompt, but session did not exist",
-                                                    "ja": f"'{req_id(request)} プロンプトを取得しましたが、セッションは存在しませんでした"}))
+                                                    "ja": f"{req_id(request)} プロンプトを取得しましたが、セッションは存在しませんでした"}))
 
                 return {"success": False, "message": "no context.", "prompt": None}
 
@@ -628,7 +629,7 @@ class ChatStream:
 
             self.logger.warning(self.eloc.to_str({
                 "en": f"{req_id(request)} An unexpected error occurred while attempting to retrieve the context　{e}\n{traceback.format_exc()}",
-                "ja": f"'{req_id(request)} コンテクストを取得しようとしたところ予期せぬエラーが発生しました　{e}\n{traceback.format_exc()}"}))
+                "ja": f"{req_id(request)} コンテクストを取得しようとしたところ予期せぬエラーが発生しました　{e}\n{traceback.format_exc()}"}))
 
             return {"success": False, "message": "error occurred"}
 
@@ -730,3 +731,12 @@ class ChatStream:
         'clear_context' APIは自動追加しない（手動追加は可能)
         """
         append_apis(self, app, opts, logger=self.logger, eloc=self.eloc)
+
+    def append_middlewares(self, app, opts=None):
+        """
+        ChatStream に関連する ミドルウェア を FastAPI アプリに追加する。
+        :param app:
+        :param opts:
+        :return:
+        """
+        append_middlewares(self, app, opts=opts, logger=self.logger, eloc=self.eloc)
