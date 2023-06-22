@@ -89,6 +89,17 @@ class AbstractChatPrompt(ABC):
 
         return list
 
+    def find_chat_content_by_message_id(self, message_id):
+        """
+        メッセージIDで chat_content を検索する
+        :param message_id:
+        :return:
+        """
+        for idx, chat_content in enumerate(self.chat_contents):
+            if chat_content.get_message_id() is not None and chat_content.get_message_id() == message_id:
+                return chat_content
+        return None
+
     def get_turn(self):
         return len(self.requester_messages)
 
