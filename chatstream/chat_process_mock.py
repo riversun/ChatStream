@@ -1,5 +1,6 @@
 import asyncio
 
+from .default_finish_token import DEFAULT_FINISH_TOKEN
 from .mock_response_example_text import sample_text_array, sample_text_long
 
 
@@ -58,15 +59,16 @@ class ChatGeneratorMock:
                 if index == 0:
                     pos = "begin"
 
-                await asyncio.sleep(time_per_token_sec)  # わずかな遅延を発生させ、逐次返信となるようにする
+                if time_per_token_sec>0:
+                    await asyncio.sleep(time_per_token_sec)  # わずかな遅延を発生させ、逐次返信となるようにする
 
                 # 出力タイプごとに出しわける
                 if otype == "updated_text":
                     yield updated_text
                 elif otype == "response_text":
-                    yield resp_text
+                    yield resp_text+DEFAULT_FINISH_TOKEN
                 else:
-                    yield resp_text, updated_text, pos
+                    yield resp_text+DEFAULT_FINISH_TOKEN, updated_text, pos
 
                 prev = resp_text
 
