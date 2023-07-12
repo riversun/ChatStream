@@ -20,6 +20,12 @@ chat_stream = ChatStream(
     mock_params={"type": "round",  # "echo" "round" "long"
                  "initial_wait_sec": 0.3,
                  "time_per_token_sec": 0.2},
+    # allow_web_ui=True,  # WebUIを有効にする
+    # allow_clear_context=True,  # コンテクストのクリアを許可する
+    # allow_get_prompt=True,  # プロンプトの取得を許可する
+    # allow_get_load=True,  # 負荷情報の取得を許可する
+    # allow_set_generation_params=True,  # ユーザーごとに生成パラメータをセットできるようにする
+    # allow_get_resource_usage=True,
     chat_prompt_clazz=ChatPrompt,
 )
 chat_stream.logger.setLevel(logging.DEBUG)
@@ -73,12 +79,12 @@ async def clear_api(request: Request):
 
 
 @app.get("/chatstream.js")
-def index(response: Response):
-    return chat_stream.js(response)
+async def index(request: Request,response: Response):
+    return await chat_stream.js(response)
 
 
 @app.get("/")
-def index(response: Response):
+async def index(request: Request,response: Response):
     ui_init_params = {
         "developMode": True,
         "clearContextOnReload": True,
@@ -97,7 +103,7 @@ def index(response: Response):
         }
     }
 
-    return chat_stream.index(response, opts={"ui_init_params": ui_init_params})
+    return await chat_stream.index(response, opts={"ui_init_params": ui_init_params})
 
 
 @app.on_event("startup")
