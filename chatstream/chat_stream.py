@@ -635,9 +635,9 @@ class ChatStream:
                 # セッションオブジェクト（辞書オブジェクト）を取得する
                 session = session_mgr.get_session()
                 chat_prompt = session.get("chat_prompt")  # 履歴を取り出す
-                is_like = feedback_from_client.get("like", False)
+                is_like = feedback_from_client.get("is_like", False)
                 message_id = feedback_from_client.get("message_id", None)
-                additional_comments = feedback_from_client.get("additional_comments", "")
+                form_data = feedback_from_client.get("form_data", "")
 
                 generation_params = await self._get_generation_params_via_session(session)  # 生成パラメータ
 
@@ -646,6 +646,7 @@ class ChatStream:
                         "success": True,
                         "message": "message_id is None",
                     }
+
                 if chat_prompt is not None:
                     target_prompt = chat_prompt.create_prompt({"to_message_id": message_id})  # message_id までの履歴を含むプロンプトを取得する
                     target_chat_content = chat_prompt.find_chat_content_by_message_id(message_id)
@@ -653,7 +654,7 @@ class ChatStream:
 
                     feedback_data = {
                         "is_like": is_like,
-                        "additional_comments": additional_comments,
+                        "form_data": form_data,
                         "prompt": target_prompt,  # 指定したメッセージIDまでのプロンプト
                         "target_message_id": message_id,
                         "target_message": target_message,  # フィードバックがついた応答メッセージそのもの
